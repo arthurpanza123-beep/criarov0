@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Image from "next/image"
 import { motion, AnimatePresence } from "motion/react"
 import {
   Play,
@@ -150,17 +151,29 @@ export function FarmConsole() {
   return (
     <section className="relative mx-auto max-w-2xl px-4 py-8 md:py-12">
       {/* Cabeçalho */}
-      <div className="mb-8 flex flex-col gap-1">
-        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary">
-          <span className="relative flex size-2">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
-            <span className="relative inline-flex size-2 rounded-full bg-primary" />
-          </span>
-          Painel de automação
+      <div className="mb-8 flex items-center gap-4">
+        <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 ring-glow">
+          <Image
+            src="/credit-farm-mascot.png"
+            alt="Credit Farm"
+            width={96}
+            height={96}
+            className="h-14 w-14 object-contain"
+            priority
+          />
         </div>
-        <h1 className="text-balance text-2xl font-bold tracking-tight md:text-3xl">
-          Console de <span className="text-primary">Farm</span>
-        </h1>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary">
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex size-2 rounded-full bg-primary" />
+            </span>
+            Painel de automação
+          </div>
+          <h1 className="text-balance text-2xl font-bold tracking-tight md:text-3xl">
+            Credit <span className="text-primary text-glow">Farm</span>
+          </h1>
+        </div>
       </div>
 
       {/* Núcleo + Ganhos */}
