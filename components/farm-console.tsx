@@ -187,7 +187,7 @@ export function FarmConsole() {
   }
 
   return (
-    <section className="mx-auto flex h-dvh max-w-6xl flex-col p-3 md:p-5">
+    <section className="mx-auto flex h-dvh w-full max-w-[1680px] flex-col p-3 md:p-4">
       {/* Painel-terminal emoldurado */}
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card/40 shadow-[0_30px_80px_-40px_oklch(0_0_0_/_0.9)] backdrop-blur-xl">
         <CornerTicks />
@@ -195,19 +195,19 @@ export function FarmConsole() {
         {/* Barra de título */}
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border bg-background/30 px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="relative shrink-0">
-              <div className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-primary/20 blur-lg" />
+            <div className="relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-b from-primary/15 to-transparent">
+              <div className="pointer-events-none absolute inset-0 -z-10 bg-primary/20 blur-md" />
               <Image
                 src="/credit-farm-mascot.png"
                 alt="Credit Farm"
                 width={96}
                 height={96}
-                className="h-9 w-9 object-contain drop-shadow-[0_2px_6px_oklch(0_0_0_/_0.5)]"
+                className="h-9 w-9 object-contain drop-shadow-[0_2px_6px_oklch(0_0_0_/_0.6)]"
                 priority
               />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-base font-semibold leading-none tracking-tight">
+              <h1 className="text-[17px] font-bold leading-none tracking-tight">
                 Credit <span className="text-primary">Farm</span>
               </h1>
               <span className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -270,23 +270,26 @@ export function FarmConsole() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.16 }}
-                className="grid h-full min-h-0 gap-px overflow-y-auto bg-border lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:overflow-hidden"
+                className="grid h-full min-h-0 gap-px overflow-y-auto bg-border lg:grid-cols-[minmax(420px,460px)_minmax(0,1fr)] lg:overflow-hidden"
               >
                 {/* Coluna esquerda */}
                 <div className="flex min-h-0 flex-col bg-card/30">
                   {/* Núcleo */}
                   <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden p-5">
-                    <div className="pointer-events-none absolute inset-0 bg-grid opacity-40" />
-                    {state === "running" && (
-                      <div className="pointer-events-none absolute inset-0 animate-shimmer bg-gradient-to-b from-transparent via-primary/[0.06] to-transparent" />
-                    )}
+                    {/* Spotlight radial suave atrás do núcleo */}
+                    <div
+                      className={`pointer-events-none absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl transition-opacity duration-700 ${
+                        state === "running" ? "opacity-100" : "opacity-40"
+                      }`}
+                      style={{ background: "radial-gradient(circle, oklch(0.8 0.2 152 / 0.16), transparent 70%)" }}
+                    />
 
                     <span className="relative mb-3 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
                       Farm Core
                     </span>
 
                     <div className="relative">
-                      <FarmCore state={state} progress={coreProgress} size={172} />
+                      <FarmCore state={state} progress={coreProgress} size={200} />
                     </div>
 
                     {/* Centro: mínimo quando ocioso, ganhos/processo após iniciar */}
@@ -479,14 +482,28 @@ export function FarmConsole() {
                               </motion.span>
                             </AnimatePresence>
                             {activeStep.index === 2 && (
-                              <span className="flex items-center gap-1 font-mono text-[10px] tabular-nums text-primary">
+                              <span className="flex items-center gap-1 font-mono text-[10px] font-semibold tabular-nums text-primary">
                                 <Users className="size-3" />
-                                {activeStep.invites}/{MAX_INVITES}
+                                {activeStep.invites}/{MAX_INVITES} convites
                               </span>
                             )}
                           </div>
 
-                          <div className="relative mt-2 flex gap-1">
+                          {/* Animação de convite: grade de pontos que acendem */}
+                          <AnimatePresence>
+                            {activeStep.index === 2 && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <InviteDots count={activeStep.invites} total={MAX_INVITES} />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
+                          <div className="relative mt-3 flex gap-1">
                             {FARM_STEPS.map((_, i) => (
                               <span
                                 key={i}
@@ -690,6 +707,29 @@ export function FarmConsole() {
 }
 
 /* ---------- helpers ---------- */
+
+function InviteDots({ count, total }: { count: number; total: number }) {
+  return (
+    <div className="mt-3 flex flex-wrap gap-1">
+      {Array.from({ length: total }).map((_, i) => {
+        const filled = i < count
+        const isLatest = i === count - 1
+        return (
+          <motion.span
+            key={i}
+            className={`size-2 rounded-sm ${filled ? "bg-primary" : "bg-muted"}`}
+            animate={
+              isLatest
+                ? { scale: [1, 1.6, 1], boxShadow: ["0 0 0 oklch(0.8 0.2 152 / 0)", "0 0 8px oklch(0.8 0.2 152 / 0.9)", "0 0 4px oklch(0.8 0.2 152 / 0.4)"] }
+                : { scale: 1 }
+            }
+            transition={{ duration: 0.4 }}
+          />
+        )
+      })}
+    </div>
+  )
+}
 
 function CornerTicks() {
   const base = "absolute size-3 border-primary/40"

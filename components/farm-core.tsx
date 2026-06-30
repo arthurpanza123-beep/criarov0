@@ -50,6 +50,9 @@ export function FarmCore({
         )}
       </AnimatePresence>
 
+      {/* Aro interno decorativo */}
+      <span className="absolute rounded-full border border-border/60" style={{ inset: stroke + 10 }} />
+
       <svg width={size} height={size} className="-rotate-90">
         <circle
           cx={size / 2}
@@ -58,6 +61,7 @@ export function FarmCore({
           fill="none"
           stroke="var(--muted)"
           strokeWidth={stroke}
+          opacity={0.5}
         />
         <motion.circle
           cx={size / 2}

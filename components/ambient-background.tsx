@@ -12,14 +12,14 @@ export function AmbientBackground() {
       {/* Base quase preta com leve elevação no topo */}
       <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_-20%,oklch(0.2_0.012_158)_0%,oklch(0.155_0.005_160)_50%,oklch(0.125_0.004_160)_100%)]" />
 
-      {/* Grade fina com fade radial */}
+      {/* Pontos sutis com fade radial */}
       <div
-        className="absolute inset-0 bg-grid opacity-60"
+        className="absolute inset-0 bg-dots opacity-40"
         style={{
           maskImage:
-            "radial-gradient(ellipse 90% 75% at 50% 30%, black 20%, transparent 80%)",
+            "radial-gradient(ellipse 80% 70% at 50% 25%, black 10%, transparent 75%)",
           WebkitMaskImage:
-            "radial-gradient(ellipse 90% 75% at 50% 30%, black 20%, transparent 80%)",
+            "radial-gradient(ellipse 80% 70% at 50% 25%, black 10%, transparent 75%)",
         }}
       />
 
