@@ -20,6 +20,8 @@ import {
   Loader2,
   Activity,
   Users,
+  Settings as SettingsIcon,
+  ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AnimatedNumber } from "@/components/animated-number"
@@ -39,10 +41,12 @@ import {
 type FarmState = "idle" | "running" | "paused" | "done"
 type FarmMode = "all" | "goal"
 type FeedItem = { id: string; email: string }
+type Tab = "farm" | "settings"
 
 const PER_ACCOUNT = 5
 
 export function FarmConsole() {
+  const [tab, setTab] = useState<Tab>("farm")
   const [apiKey, setApiKey] = useState("")
   const [showKey, setShowKey] = useState(false)
   const [rawAccounts, setRawAccounts] = useState(DEFAULT_ACCOUNTS_RAW)
@@ -169,354 +173,470 @@ export function FarmConsole() {
   return (
     <section className="relative mx-auto max-w-2xl px-4 py-8 md:py-12">
       {/* Cabeçalho */}
-      <div className="mb-8 flex items-center gap-4">
-        <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 ring-glow">
-          <Image
-            src="/credit-farm-mascot.png"
-            alt="Credit Farm"
-            width={96}
-            height={96}
-            className="h-14 w-14 object-contain"
-            priority
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary">
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex size-2 rounded-full bg-primary" />
-            </span>
-            Painel de automação
+      <header className="mb-7 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 to-transparent ring-glow">
+            <Image
+              src="/credit-farm-mascot.png"
+              alt="Credit Farm"
+              width={96}
+              height={96}
+              className="h-11 w-11 object-contain"
+              priority
+            />
           </div>
-          <h1 className="text-balance text-2xl font-bold tracking-tight md:text-3xl">
-            Credit <span className="text-primary text-glow">Farm</span>
-          </h1>
+          <div className="flex flex-col">
+            <h1 className="text-balance text-2xl font-bold leading-none tracking-tight">
+              Credit <span className="text-primary text-glow">Farm</span>
+            </h1>
+            <span className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <span
+                className={`relative flex size-2 ${state === "running" ? "" : "opacity-60"}`}
+              >
+                {state === "running" && (
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
+                )}
+                <span className="relative inline-flex size-2 rounded-full bg-primary" />
+              </span>
+              {state === "running" ? "Worker em execução" : "Painel de automação"}
+            </span>
+          </div>
         </div>
-      </div>
 
-      {/* Núcleo + Ganhos */}
-      <div className="relative mb-6 flex flex-col items-center overflow-hidden rounded-2xl border border-primary/30 bg-card/50 p-8 backdrop-blur-sm ring-glow">
-        <div className="pointer-events-none absolute inset-0 bg-grid opacity-25" />
-        {state === "running" && (
-          <div className="pointer-events-none absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
-        )}
-
-        <div className="relative">
-          <FarmCore state={state} progress={coreProgress} />
-        </div>
-
-        {/* Ganhos */}
-        <div className="relative mt-6 text-center">
-          <span className="flex items-center justify-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
-            <DollarSign className="size-3.5 text-primary" />
-            Ganhos acumulados · $5 por conta
+        {/* Mini saldo */}
+        <div className="hidden flex-col items-end rounded-xl border border-border/60 bg-card/50 px-4 py-2 backdrop-blur-sm sm:flex">
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Saldo
           </span>
           <AnimatedNumber
             value={earnings}
             prefix="$"
             decimals={0}
-            className="mt-1 block font-mono text-5xl font-bold tabular-nums text-primary text-glow"
+            className="font-mono text-lg font-bold leading-none tabular-nums text-primary"
           />
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={state}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              className="mt-2 text-sm text-muted-foreground"
-            >
-              {state === "idle" && `${available} contas prontas para farmar`}
-              {state === "running" && activeEmail && (
-                <span className="font-mono text-primary">
-                  Farmando {maskEmail(activeEmail)}
-                </span>
-              )}
-              {state === "paused" && "Farm pausado — clique em retomar"}
-              {state === "done" && (
-                <span className="font-medium text-primary">
-                  {usedCount} contas farmadas · +${earnings.toLocaleString("pt-BR")}
-                </span>
-              )}
-            </motion.p>
-          </AnimatePresence>
         </div>
+      </header>
 
-        {/* Barra de progresso */}
-        <div className="relative mt-5 w-full max-w-sm">
-          <div className="mb-1.5 flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">
-              {mode === "goal"
-                ? `${usedCount}/${neededForGoal} contas · meta $${goalUsd.toLocaleString("pt-BR")}`
-                : `${usedCount} farmadas`}
-            </span>
-            <span className="font-mono font-semibold text-primary">{overall}%</span>
-          </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-            <motion.div
-              className="h-full rounded-full bg-primary"
-              animate={{ width: `${overall}%` }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              style={{ boxShadow: "0 0 12px var(--primary)" }}
-            />
-          </div>
-        </div>
+      {/* Abas */}
+      <div className="mb-6 grid grid-cols-2 gap-1 rounded-2xl border border-border/60 bg-card/40 p-1 backdrop-blur-sm">
+        <TabButton
+          active={tab === "farm"}
+          onClick={() => setTab("farm")}
+          icon={Activity}
+          label="Farm"
+        />
+        <TabButton
+          active={tab === "settings"}
+          onClick={() => setTab("settings")}
+          icon={SettingsIcon}
+          label="Configurações"
+        />
       </div>
 
-      {/* Stats */}
-      <div className="mb-6 grid grid-cols-2 gap-3">
-        <StatCard icon={Mail} label="Disponíveis" value={available} tone="primary" />
-        <StatCard icon={MailCheck} label="Usadas" value={usedCount} tone="muted" />
-      </div>
-
-      {/* Controles */}
-      <div className="mb-6 flex flex-wrap gap-3">
-        {state !== "running" ? (
-          <Button
-            onClick={start}
-            size="lg"
-            className="group flex-1 ring-glow"
-            disabled={available === 0}
+      <AnimatePresence mode="wait">
+        {tab === "farm" ? (
+          <motion.div
+            key="farm"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
           >
-            <Play className="transition-transform group-hover:scale-110" />
-            {state === "paused" ? "Retomar farm" : "Iniciar farm"}
-          </Button>
-        ) : (
-          <Button onClick={pause} size="lg" variant="secondary" className="flex-1">
-            <Pause />
-            Pausar
-          </Button>
-        )}
-        <Button onClick={reset} size="lg" variant="outline" disabled={state === "idle"}>
-          <RotateCcw />
-          Resetar
-        </Button>
-      </div>
+            {/* Núcleo + Ganhos */}
+            <div className="relative mb-6 flex flex-col items-center overflow-hidden rounded-3xl border border-primary/30 bg-card/50 p-8 backdrop-blur-sm ring-glow">
+              <div className="pointer-events-none absolute inset-0 bg-grid opacity-25" />
+              {state === "running" && (
+                <div className="pointer-events-none absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
+              )}
 
-      <div className="flex flex-col gap-6">
-        {/* API Key */}
-        <div className="rounded-2xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
-          <label className="mb-3 flex items-center gap-2 text-sm font-medium">
-            <KeyRound className="size-4 text-primary" />
-            API NotLetters
-          </label>
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type={showKey ? "text" : "password"}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="nl_live_••••••••••••••••"
-                className="w-full rounded-lg border border-input bg-background/60 px-3 py-2.5 pr-10 font-mono text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey((v) => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                aria-label={showKey ? "Esconder chave" : "Mostrar chave"}
-              >
-                {showKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
-            </div>
-            <span
-              className={`flex size-2.5 shrink-0 rounded-full transition-colors ${
-                apiKey ? "bg-primary shadow-[0_0_8px_var(--primary)]" : "bg-muted-foreground/40"
-              }`}
-              aria-hidden
-            />
-          </div>
-        </div>
+              <div className="relative">
+                <FarmCore state={state} progress={coreProgress} />
+              </div>
 
-        {/* Meta de ganhos */}
-        <div className="rounded-2xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
-          <label className="mb-4 flex items-center gap-2 text-sm font-medium">
-            <Target className="size-4 text-primary" />
-            Meta de ganhos
-          </label>
-
-          <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-border/60 bg-background/40 p-1">
-            <ModeButton
-              active={mode === "all"}
-              disabled={locked}
-              onClick={() => setMode("all")}
-              icon={InfinityIcon}
-              label="Farm completo"
-            />
-            <ModeButton
-              active={mode === "goal"}
-              disabled={locked}
-              onClick={() => setMode("goal")}
-              icon={Target}
-              label="Por meta ($)"
-            />
-          </div>
-
-          <AnimatePresence initial={false}>
-            {mode === "goal" && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <span className="mb-1.5 block text-xs text-muted-foreground">
-                  Quanto você quer ganhar (USD)
+              {/* Ganhos */}
+              <div className="relative mt-6 text-center">
+                <span className="flex items-center justify-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
+                  <DollarSign className="size-3.5 text-primary" />
+                  Ganhos acumulados · $5 por conta
                 </span>
-                <div className="relative">
-                  <DollarSign className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
-                  <input
-                    type="number"
-                    min={PER_ACCOUNT}
-                    step={PER_ACCOUNT}
-                    value={goalUsd}
-                    disabled={locked}
-                    onChange={(e) => setGoalUsd(Math.max(0, Number(e.target.value) || 0))}
-                    className="w-full rounded-lg border border-input bg-background/60 py-2.5 pl-9 pr-3 font-mono text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
-                  />
-                </div>
-                <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs">
-                  <Target className="size-3.5 shrink-0 text-primary" />
-                  <span className="text-muted-foreground">
-                    Arredondando para cima:{" "}
-                    <span className="font-mono font-semibold text-primary">
-                      {neededForGoal} contas
-                    </span>{" "}
-                    ={" "}
-                    <span className="font-mono font-semibold text-primary">
-                      ${(neededForGoal * PER_ACCOUNT).toLocaleString("pt-BR")}
-                    </span>
-                    {neededForGoal > available + usedCount && (
-                      <span className="text-destructive">
-                        {" "}
-                        — faltam {neededForGoal - (available + usedCount)} contas
+                <AnimatedNumber
+                  value={earnings}
+                  prefix="$"
+                  decimals={0}
+                  className="mt-1 block font-mono text-5xl font-bold tabular-nums text-primary text-glow"
+                />
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={state}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="mt-2 text-sm text-muted-foreground"
+                  >
+                    {state === "idle" && `${available} contas prontas para farmar`}
+                    {state === "running" && activeEmail && (
+                      <span className="font-mono text-primary">
+                        Farmando {maskEmail(activeEmail)}
                       </span>
                     )}
+                    {state === "paused" && "Farm pausado — clique em retomar"}
+                    {state === "done" && (
+                      <span className="font-medium text-primary">
+                        {usedCount} contas farmadas · +${earnings.toLocaleString("pt-BR")}
+                      </span>
+                    )}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
+
+              {/* Barra de progresso */}
+              <div className="relative mt-5 w-full max-w-sm">
+                <div className="mb-1.5 flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {mode === "goal"
+                      ? `${usedCount}/${neededForGoal} contas · meta $${goalUsd.toLocaleString("pt-BR")}`
+                      : `${usedCount} farmadas`}
+                  </span>
+                  <span className="font-mono font-semibold text-primary">{overall}%</span>
+                </div>
+                <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+                  <motion.div
+                    className="h-full rounded-full bg-primary"
+                    animate={{ width: `${overall}%` }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    style={{ boxShadow: "0 0 12px var(--primary)" }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="mb-6 grid grid-cols-2 gap-3">
+              <StatCard icon={Mail} label="Disponíveis" value={available} tone="primary" />
+              <StatCard icon={MailCheck} label="Usadas" value={usedCount} tone="muted" />
+            </div>
+
+            {/* Controles */}
+            <div className="mb-6 flex flex-wrap gap-3">
+              {state !== "running" ? (
+                <Button
+                  onClick={start}
+                  size="lg"
+                  className="group flex-1 ring-glow"
+                  disabled={available === 0}
+                >
+                  <Play className="transition-transform group-hover:scale-110" />
+                  {state === "paused" ? "Retomar farm" : "Iniciar farm"}
+                </Button>
+              ) : (
+                <Button onClick={pause} size="lg" variant="secondary" className="flex-1">
+                  <Pause />
+                  Pausar
+                </Button>
+              )}
+              <Button onClick={reset} size="lg" variant="outline" disabled={state === "idle"}>
+                <RotateCcw />
+                Resetar
+              </Button>
+            </div>
+
+            {/* Atividade ao vivo */}
+            <div className="rounded-3xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex flex-col">
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <Activity className="size-4 text-primary" />
+                    Atividade ao vivo
+                  </label>
+                  <span className="mt-0.5 text-xs text-muted-foreground">
+                    {feed.length > 0
+                      ? `${feed.length} contas farmadas nesta sessão`
+                      : "Processando e concluídas aparecem aqui"}
                   </span>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Atividade ao vivo */}
-        <div className="rounded-2xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex flex-col">
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <Activity className="size-4 text-primary" />
-                Atividade ao vivo
-              </label>
-              <span className="mt-0.5 text-xs text-muted-foreground">
-                {feed.length > 0
-                  ? `${feed.length} contas farmadas nesta sessão`
-                  : "Processando e concluídas aparecem aqui"}
-              </span>
-            </div>
-            <Button size="sm" variant="secondary" onClick={() => setModalOpen(true)}>
-              <Plus className="size-4" />
-              Adicionar
-            </Button>
-          </div>
-
-          {/* Feed ao vivo — aparece de pouco em pouco */}
-          <div className="relative max-h-72 space-y-1.5 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-2">
-            {/* Conta em processamento */}
-            <AnimatePresence>
-              {state === "running" && activeEmail && (
-                <motion.div
-                  key={`active-${activeEmail}`}
-                  layout
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="relative overflow-hidden rounded-lg border border-primary/40 bg-primary/10 p-3"
-                >
-                  <motion.div
-                    className="pointer-events-none absolute inset-y-0 left-0 bg-primary/15"
-                    animate={{ width: `${curProgress}%` }}
-                    transition={{ duration: 0.2, ease: "linear" }}
-                  />
-                  <div className="relative flex items-center gap-3">
-                    <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
-                    <span className="flex-1 truncate font-mono text-xs font-medium text-primary">
-                      {maskEmail(activeEmail)}
-                    </span>
-                    <span className="font-mono text-[11px] font-semibold text-primary">
-                      {Math.round(curProgress)}%
-                    </span>
-                  </div>
-
-                  {/* Etapa atual */}
-                  <div className="relative mt-2 flex items-center justify-between gap-2">
-                    <AnimatePresence mode="wait">
-                      <motion.span
-                        key={activeStep.label}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        className="flex items-center gap-1.5 text-[11px] font-medium text-foreground/80"
-                      >
-                        <span className="flex size-4 items-center justify-center rounded-full bg-primary/20 font-mono text-[9px] text-primary">
-                          {activeStep.index + 1}
-                        </span>
-                        {activeStep.label}
-                      </motion.span>
-                    </AnimatePresence>
-                    {activeStep.index === 2 && (
-                      <span className="flex items-center gap-1 font-mono text-[11px] text-primary">
-                        <Users className="size-3" />
-                        {activeStep.invites}/{MAX_INVITES}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Trilha de etapas */}
-                  <div className="relative mt-2 flex gap-1">
-                    {FARM_STEPS.map((_, i) => (
-                      <span
-                        key={i}
-                        className={`h-1 flex-1 rounded-full transition-colors ${
-                          i <= activeStep.index ? "bg-primary" : "bg-muted"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Contas já farmadas */}
-            {feed.length === 0 && state !== "running" ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-muted-foreground">
-                <div className="flex size-12 items-center justify-center rounded-full border border-border/60 bg-muted/40">
-                  <MailCheck className="size-6 opacity-60" />
-                </div>
-                <p className="text-sm">Nada por aqui ainda</p>
-                <p className="text-xs">Inicie o farm para ver as contas processadas</p>
+                <Button size="sm" variant="secondary" onClick={() => setModalOpen(true)}>
+                  <Plus className="size-4" />
+                  Adicionar
+                </Button>
               </div>
-            ) : (
-              <AnimatePresence initial={false}>
-                {feed.map((item, i) => (
-                  <motion.div
-                    key={item.id}
-                    layout
-                    initial={{ opacity: 0, x: -12, height: 0 }}
-                    animate={{ opacity: 1, x: 0, height: "auto" }}
-                    className="flex items-center gap-3 rounded-lg border border-border/40 bg-card/40 px-3 py-2"
+
+              {/* Feed ao vivo — aparece de pouco em pouco */}
+              <div className="relative max-h-72 space-y-1.5 overflow-y-auto rounded-2xl border border-border/60 bg-background/40 p-2">
+                {/* Conta em processamento */}
+                <AnimatePresence>
+                  {state === "running" && activeEmail && (
+                    <motion.div
+                      key={`active-${activeEmail}`}
+                      layout
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="relative overflow-hidden rounded-xl border border-primary/40 bg-primary/10 p-3"
+                    >
+                      <motion.div
+                        className="pointer-events-none absolute inset-y-0 left-0 bg-primary/15"
+                        animate={{ width: `${curProgress}%` }}
+                        transition={{ duration: 0.2, ease: "linear" }}
+                      />
+                      <div className="relative flex items-center gap-3">
+                        <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
+                        <span className="flex-1 truncate font-mono text-xs font-medium text-primary">
+                          {maskEmail(activeEmail)}
+                        </span>
+                        <span className="font-mono text-[11px] font-semibold text-primary">
+                          {Math.round(curProgress)}%
+                        </span>
+                      </div>
+
+                      {/* Etapa atual */}
+                      <div className="relative mt-2 flex items-center justify-between gap-2">
+                        <AnimatePresence mode="wait">
+                          <motion.span
+                            key={activeStep.label}
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            className="flex items-center gap-1.5 text-[11px] font-medium text-foreground/80"
+                          >
+                            <span className="flex size-4 items-center justify-center rounded-full bg-primary/20 font-mono text-[9px] text-primary">
+                              {activeStep.index + 1}
+                            </span>
+                            {activeStep.label}
+                          </motion.span>
+                        </AnimatePresence>
+                        {activeStep.index === 2 && (
+                          <span className="flex items-center gap-1 font-mono text-[11px] text-primary">
+                            <Users className="size-3" />
+                            {activeStep.invites}/{MAX_INVITES}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Trilha de etapas */}
+                      <div className="relative mt-2 flex gap-1">
+                        {FARM_STEPS.map((_, i) => (
+                          <span
+                            key={i}
+                            className={`h-1 flex-1 rounded-full transition-colors ${
+                              i <= activeStep.index ? "bg-primary" : "bg-muted"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Contas já farmadas */}
+                {feed.length === 0 && state !== "running" ? (
+                  <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-muted-foreground">
+                    <div className="flex size-12 items-center justify-center rounded-full border border-border/60 bg-muted/40">
+                      <MailCheck className="size-6 opacity-60" />
+                    </div>
+                    <p className="text-sm">Nada por aqui ainda</p>
+                    <p className="text-xs">Inicie o farm para ver as contas processadas</p>
+                  </div>
+                ) : (
+                  <AnimatePresence initial={false}>
+                    {feed.map((item) => (
+                      <motion.div
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 0, x: -12, height: 0 }}
+                        animate={{ opacity: 1, x: 0, height: "auto" }}
+                        className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/40 px-3 py-2"
+                      >
+                        <CheckCircle2 className="size-4 shrink-0 text-primary" />
+                        <span className="flex-1 truncate font-mono text-xs text-foreground/80">
+                          {maskEmail(item.email)}
+                        </span>
+                        <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-primary">
+                          +$5
+                        </span>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="settings"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-col gap-6"
+          >
+            {/* API Key */}
+            <div className="rounded-3xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
+              <div className="mb-1 flex items-center gap-2">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
+                  <KeyRound className="size-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold">API NotLetters</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Chave usada para autenticar o worker
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={showKey ? "text" : "password"}
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="nl_live_••••••••••••••••"
+                    className="w-full rounded-xl border border-input bg-background/60 px-3 py-2.5 pr-10 font-mono text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    aria-label={showKey ? "Esconder chave" : "Mostrar chave"}
                   >
-                    <CheckCircle2 className="size-4 shrink-0 text-primary" />
-                    <span className="flex-1 truncate font-mono text-xs text-foreground/80">
-                      {maskEmail(item.email)}
+                    {showKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-2 text-xs">
+                <span
+                  className={`flex size-2.5 shrink-0 rounded-full transition-colors ${
+                    apiKey ? "bg-primary shadow-[0_0_8px_var(--primary)]" : "bg-muted-foreground/40"
+                  }`}
+                  aria-hidden
+                />
+                <span className="text-muted-foreground">
+                  {apiKey ? "Chave configurada" : "Nenhuma chave configurada"}
+                </span>
+              </div>
+            </div>
+
+            {/* Contas / Emails */}
+            <div className="rounded-3xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
+                  <Mail className="size-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold">Contas &amp; e-mails</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Pool de contas disponíveis para o farm
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                <div className="flex flex-col">
+                  <AnimatedNumber
+                    value={available}
+                    className="font-mono text-3xl font-bold leading-none tabular-nums text-primary text-glow"
+                  />
+                  <span className="mt-1 text-xs text-muted-foreground">
+                    contas no pool
+                  </span>
+                </div>
+                <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                  <ShieldCheck className="size-4 text-primary" />
+                  Senhas mascaradas
+                </div>
+              </div>
+
+              <Button
+                className="mt-4 w-full"
+                variant="secondary"
+                onClick={() => setModalOpen(true)}
+              >
+                <Plus className="size-4" />
+                Adicionar contas
+              </Button>
+              <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                Formato: e-mail &gt; senha (uma por linha) ou arquivo .txt
+              </p>
+            </div>
+
+            {/* Meta de ganhos */}
+            <div className="rounded-3xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
+                  <Target className="size-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold">Meta de ganhos</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Defina até onde o farm deve ir
+                  </p>
+                </div>
+              </div>
+
+              <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-border/60 bg-background/40 p-1">
+                <ModeButton
+                  active={mode === "all"}
+                  disabled={locked}
+                  onClick={() => setMode("all")}
+                  icon={InfinityIcon}
+                  label="Farm completo"
+                />
+                <ModeButton
+                  active={mode === "goal"}
+                  disabled={locked}
+                  onClick={() => setMode("goal")}
+                  icon={Target}
+                  label="Por meta ($)"
+                />
+              </div>
+
+              <AnimatePresence initial={false}>
+                {mode === "goal" && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <span className="mb-1.5 block text-xs text-muted-foreground">
+                      Quanto você quer ganhar (USD)
                     </span>
-                    <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-primary">
-                      +$5
-                    </span>
+                    <div className="relative">
+                      <DollarSign className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
+                      <input
+                        type="number"
+                        min={PER_ACCOUNT}
+                        step={PER_ACCOUNT}
+                        value={goalUsd}
+                        disabled={locked}
+                        onChange={(e) => setGoalUsd(Math.max(0, Number(e.target.value) || 0))}
+                        className="w-full rounded-xl border border-input bg-background/60 py-2.5 pl-9 pr-3 font-mono text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                      />
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs">
+                      <Target className="size-3.5 shrink-0 text-primary" />
+                      <span className="text-muted-foreground">
+                        Arredondando para cima:{" "}
+                        <span className="font-mono font-semibold text-primary">
+                          {neededForGoal} contas
+                        </span>{" "}
+                        ={" "}
+                        <span className="font-mono font-semibold text-primary">
+                          ${(neededForGoal * PER_ACCOUNT).toLocaleString("pt-BR")}
+                        </span>
+                        {neededForGoal > available + usedCount && (
+                          <span className="text-destructive">
+                            {" "}
+                            — faltam {neededForGoal - (available + usedCount)} contas
+                          </span>
+                        )}
+                      </span>
+                    </div>
                   </motion.div>
-                ))}
+                )}
               </AnimatePresence>
-            )}
-          </div>
-        </div>
-      </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AddAccountsModal
         open={modalOpen}
@@ -531,6 +651,40 @@ export function FarmConsole() {
         onConfirm={confirmStart}
       />
     </section>
+  )
+}
+
+function TabButton({
+  active,
+  onClick,
+  icon: Icon,
+  label,
+}: {
+  active: boolean
+  onClick: () => void
+  icon: typeof Activity
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+        active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {active && (
+        <motion.span
+          layoutId="tab-pill"
+          className="absolute inset-0 rounded-xl bg-primary ring-glow"
+          transition={{ type: "spring", stiffness: 400, damping: 32 }}
+        />
+      )}
+      <span className="relative flex items-center gap-2">
+        <Icon className="size-4" />
+        {label}
+      </span>
+    </button>
   )
 }
 
@@ -583,7 +737,7 @@ function StatCard({
   tone: "primary" | "muted"
 }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card/50 p-4 text-center backdrop-blur-sm">
+    <div className="rounded-2xl border border-border/60 bg-card/50 p-4 text-center backdrop-blur-sm">
       <Icon
         className={`mx-auto mb-1.5 size-4 ${tone === "primary" ? "text-primary" : "text-muted-foreground"}`}
       />
