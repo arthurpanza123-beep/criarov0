@@ -8,15 +8,16 @@ type FarmState = "idle" | "running" | "paused" | "done"
 export function FarmCore({
   state,
   progress,
+  size = 220,
 }: {
   state: FarmState
   progress: number
+  size?: number
 }) {
   const active = state === "running"
   const done = state === "done"
 
   // Anel circular de progresso
-  const size = 220
   const stroke = 10
   const radius = (size - stroke) / 2
   const circumference = 2 * Math.PI * radius

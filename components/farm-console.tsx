@@ -105,7 +105,6 @@ export function FarmConsole() {
         setCurProgress(0)
         setAccounts((prev) => prev.slice(1))
         setUsedCount((u) => u + 1)
-        // a conta farmada aparece no feed, de pouco em pouco
         setFeed((prev) => [
           { id: `${current.email}-${Date.now()}`, email: current.email },
           ...prev,
@@ -135,7 +134,6 @@ export function FarmConsole() {
 
   function start() {
     if (available === 0) return
-    // Retomar de uma pausa não pede config de novo
     if (state === "paused") {
       setState("running")
       return
@@ -161,7 +159,6 @@ export function FarmConsole() {
     setState("idle")
   }
 
-  // Adiciona NOVAS contas ao pool (anexa, sem mostrar as existentes)
   function addAccounts(raw: string) {
     const incoming = parseAccounts(raw)
     if (incoming.length === 0) return
@@ -171,28 +168,26 @@ export function FarmConsole() {
   }
 
   return (
-    <section className="relative mx-auto max-w-2xl px-4 py-8 md:py-12">
+    <section className="mx-auto flex h-dvh max-w-6xl flex-col gap-3 overflow-hidden px-4 py-4 md:px-6 md:py-5">
       {/* Cabeçalho */}
-      <header className="mb-7 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 to-transparent ring-glow">
+      <header className="flex shrink-0 items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 to-transparent ring-glow">
             <Image
               src="/credit-farm-mascot.png"
               alt="Credit Farm"
               width={96}
               height={96}
-              className="h-11 w-11 object-contain"
+              className="h-9 w-9 object-contain"
               priority
             />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-balance text-2xl font-bold leading-none tracking-tight">
+            <h1 className="text-balance text-xl font-bold leading-none tracking-tight">
               Credit <span className="text-primary text-glow">Farm</span>
             </h1>
-            <span className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <span
-                className={`relative flex size-2 ${state === "running" ? "" : "opacity-60"}`}
-              >
+            <span className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+              <span className={`relative flex size-2 ${state === "running" ? "" : "opacity-60"}`}>
                 {state === "running" && (
                   <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
                 )}
@@ -203,152 +198,141 @@ export function FarmConsole() {
           </div>
         </div>
 
-        {/* Mini saldo */}
-        <div className="hidden flex-col items-end rounded-xl border border-border/60 bg-card/50 px-4 py-2 backdrop-blur-sm sm:flex">
-          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            Saldo
-          </span>
-          <AnimatedNumber
-            value={earnings}
-            prefix="$"
-            decimals={0}
-            className="font-mono text-lg font-bold leading-none tabular-nums text-primary"
-          />
+        {/* Abas + saldo */}
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1 rounded-xl border border-border/60 bg-card/40 p-1 backdrop-blur-sm">
+            <TabButton active={tab === "farm"} onClick={() => setTab("farm")} icon={Activity} label="Farm" />
+            <TabButton
+              active={tab === "settings"}
+              onClick={() => setTab("settings")}
+              icon={SettingsIcon}
+              label="Config"
+            />
+          </div>
+          <div className="hidden flex-col items-end rounded-xl border border-border/60 bg-card/50 px-3 py-1.5 backdrop-blur-sm sm:flex">
+            <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Saldo</span>
+            <AnimatedNumber
+              value={earnings}
+              prefix="$"
+              decimals={0}
+              className="font-mono text-base font-bold leading-none tabular-nums text-primary"
+            />
+          </div>
         </div>
       </header>
-
-      {/* Abas */}
-      <div className="mb-6 grid grid-cols-2 gap-1 rounded-2xl border border-border/60 bg-card/40 p-1 backdrop-blur-sm">
-        <TabButton
-          active={tab === "farm"}
-          onClick={() => setTab("farm")}
-          icon={Activity}
-          label="Farm"
-        />
-        <TabButton
-          active={tab === "settings"}
-          onClick={() => setTab("settings")}
-          icon={SettingsIcon}
-          label="Configurações"
-        />
-      </div>
 
       <AnimatePresence mode="wait">
         {tab === "farm" ? (
           <motion.div
             key="farm"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
+            className="grid min-h-0 flex-1 gap-3 overflow-y-auto lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:overflow-hidden"
           >
-            {/* Núcleo + Ganhos */}
-            <div className="relative mb-6 flex flex-col items-center overflow-hidden rounded-3xl border border-primary/30 bg-card/50 p-8 backdrop-blur-sm ring-glow">
-              <div className="pointer-events-none absolute inset-0 bg-grid opacity-25" />
-              {state === "running" && (
-                <div className="pointer-events-none absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
-              )}
+            {/* Coluna esquerda: núcleo + stats + controles */}
+            <div className="flex min-h-0 flex-col gap-3">
+              {/* Núcleo + Ganhos */}
+              <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-3xl border border-primary/30 bg-card/50 p-5 backdrop-blur-sm ring-glow">
+                <div className="pointer-events-none absolute inset-0 bg-grid opacity-25" />
+                {state === "running" && (
+                  <div className="pointer-events-none absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
+                )}
 
-              <div className="relative">
-                <FarmCore state={state} progress={coreProgress} />
-              </div>
+                <div className="relative">
+                  <FarmCore state={state} progress={coreProgress} size={168} />
+                </div>
 
-              {/* Ganhos */}
-              <div className="relative mt-6 text-center">
-                <span className="flex items-center justify-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
-                  <DollarSign className="size-3.5 text-primary" />
-                  Ganhos acumulados · $5 por conta
-                </span>
-                <AnimatedNumber
-                  value={earnings}
-                  prefix="$"
-                  decimals={0}
-                  className="mt-1 block font-mono text-5xl font-bold tabular-nums text-primary text-glow"
-                />
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={state}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    className="mt-2 text-sm text-muted-foreground"
-                  >
-                    {state === "idle" && `${available} contas prontas para farmar`}
-                    {state === "running" && activeEmail && (
-                      <span className="font-mono text-primary">
-                        Farmando {maskEmail(activeEmail)}
-                      </span>
-                    )}
-                    {state === "paused" && "Farm pausado — clique em retomar"}
-                    {state === "done" && (
-                      <span className="font-medium text-primary">
-                        {usedCount} contas farmadas · +${earnings.toLocaleString("pt-BR")}
-                      </span>
-                    )}
-                  </motion.p>
-                </AnimatePresence>
-              </div>
-
-              {/* Barra de progresso */}
-              <div className="relative mt-5 w-full max-w-sm">
-                <div className="mb-1.5 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">
-                    {mode === "goal"
-                      ? `${usedCount}/${neededForGoal} contas · meta $${goalUsd.toLocaleString("pt-BR")}`
-                      : `${usedCount} farmadas`}
+                <div className="relative mt-3 text-center">
+                  <span className="flex items-center justify-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <DollarSign className="size-3 text-primary" />
+                    Ganhos · $5 por conta
                   </span>
-                  <span className="font-mono font-semibold text-primary">{overall}%</span>
-                </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-                  <motion.div
-                    className="h-full rounded-full bg-primary"
-                    animate={{ width: `${overall}%` }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    style={{ boxShadow: "0 0 12px var(--primary)" }}
+                  <AnimatedNumber
+                    value={earnings}
+                    prefix="$"
+                    decimals={0}
+                    className="mt-0.5 block font-mono text-4xl font-bold tabular-nums text-primary text-glow"
                   />
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={state}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="mt-1 text-xs text-muted-foreground"
+                    >
+                      {state === "idle" && `${available} contas prontas para farmar`}
+                      {state === "running" && activeEmail && (
+                        <span className="font-mono text-primary">Farmando {maskEmail(activeEmail)}</span>
+                      )}
+                      {state === "paused" && "Farm pausado — clique em retomar"}
+                      {state === "done" && (
+                        <span className="font-medium text-primary">
+                          {usedCount} contas · +${earnings.toLocaleString("pt-BR")}
+                        </span>
+                      )}
+                    </motion.p>
+                  </AnimatePresence>
+
+                  {/* Barra de progresso */}
+                  <div className="mx-auto mt-3 w-full max-w-xs">
+                    <div className="mb-1 flex items-center justify-between text-[11px]">
+                      <span className="text-muted-foreground">
+                        {mode === "goal"
+                          ? `${usedCount}/${neededForGoal} · meta $${goalUsd.toLocaleString("pt-BR")}`
+                          : `${usedCount} farmadas`}
+                      </span>
+                      <span className="font-mono font-semibold text-primary">{overall}%</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                      <motion.div
+                        className="h-full rounded-full bg-primary"
+                        animate={{ width: `${overall}%` }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        style={{ boxShadow: "0 0 12px var(--primary)" }}
+                      />
+                    </div>
+                  </div>
                 </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid shrink-0 grid-cols-2 gap-3">
+                <StatCard icon={Mail} label="Disponíveis" value={available} tone="primary" />
+                <StatCard icon={MailCheck} label="Usadas" value={usedCount} tone="muted" />
+              </div>
+
+              {/* Controles */}
+              <div className="flex shrink-0 gap-3">
+                {state !== "running" ? (
+                  <Button onClick={start} size="lg" className="group flex-1 ring-glow" disabled={available === 0}>
+                    <Play className="transition-transform group-hover:scale-110" />
+                    {state === "paused" ? "Retomar" : "Iniciar farm"}
+                  </Button>
+                ) : (
+                  <Button onClick={pause} size="lg" variant="secondary" className="flex-1">
+                    <Pause />
+                    Pausar
+                  </Button>
+                )}
+                <Button onClick={reset} size="lg" variant="outline" disabled={state === "idle"}>
+                  <RotateCcw />
+                  Resetar
+                </Button>
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="mb-6 grid grid-cols-2 gap-3">
-              <StatCard icon={Mail} label="Disponíveis" value={available} tone="primary" />
-              <StatCard icon={MailCheck} label="Usadas" value={usedCount} tone="muted" />
-            </div>
-
-            {/* Controles */}
-            <div className="mb-6 flex flex-wrap gap-3">
-              {state !== "running" ? (
-                <Button
-                  onClick={start}
-                  size="lg"
-                  className="group flex-1 ring-glow"
-                  disabled={available === 0}
-                >
-                  <Play className="transition-transform group-hover:scale-110" />
-                  {state === "paused" ? "Retomar farm" : "Iniciar farm"}
-                </Button>
-              ) : (
-                <Button onClick={pause} size="lg" variant="secondary" className="flex-1">
-                  <Pause />
-                  Pausar
-                </Button>
-              )}
-              <Button onClick={reset} size="lg" variant="outline" disabled={state === "idle"}>
-                <RotateCcw />
-                Resetar
-              </Button>
-            </div>
-
-            {/* Atividade ao vivo */}
-            <div className="rounded-3xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
-              <div className="mb-4 flex items-center justify-between gap-3">
+            {/* Coluna direita: atividade ao vivo */}
+            <div className="flex min-h-0 flex-col rounded-3xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm">
+              <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
                 <div className="flex flex-col">
                   <label className="flex items-center gap-2 text-sm font-medium">
                     <Activity className="size-4 text-primary" />
                     Atividade ao vivo
                   </label>
-                  <span className="mt-0.5 text-xs text-muted-foreground">
+                  <span className="mt-0.5 text-[11px] text-muted-foreground">
                     {feed.length > 0
                       ? `${feed.length} contas farmadas nesta sessão`
                       : "Processando e concluídas aparecem aqui"}
@@ -360,8 +344,7 @@ export function FarmConsole() {
                 </Button>
               </div>
 
-              {/* Feed ao vivo — aparece de pouco em pouco */}
-              <div className="relative max-h-72 space-y-1.5 overflow-y-auto rounded-2xl border border-border/60 bg-background/40 p-2">
+              <div className="relative min-h-0 flex-1 space-y-1.5 overflow-y-auto rounded-2xl border border-border/60 bg-background/40 p-2">
                 {/* Conta em processamento */}
                 <AnimatePresence>
                   {state === "running" && activeEmail && (
@@ -388,7 +371,6 @@ export function FarmConsole() {
                         </span>
                       </div>
 
-                      {/* Etapa atual */}
                       <div className="relative mt-2 flex items-center justify-between gap-2">
                         <AnimatePresence mode="wait">
                           <motion.span
@@ -412,7 +394,6 @@ export function FarmConsole() {
                         )}
                       </div>
 
-                      {/* Trilha de etapas */}
                       <div className="relative mt-2 flex gap-1">
                         {FARM_STEPS.map((_, i) => (
                           <span
@@ -427,9 +408,8 @@ export function FarmConsole() {
                   )}
                 </AnimatePresence>
 
-                {/* Contas já farmadas */}
                 {feed.length === 0 && state !== "running" ? (
-                  <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-muted-foreground">
+                  <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-muted-foreground">
                     <div className="flex size-12 items-center justify-center rounded-full border border-border/60 bg-muted/40">
                       <MailCheck className="size-6 opacity-60" />
                     </div>
@@ -463,43 +443,39 @@ export function FarmConsole() {
         ) : (
           <motion.div
             key="settings"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="flex flex-col gap-6"
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
+            className="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto lg:grid-cols-3 lg:overflow-hidden"
           >
             {/* API Key */}
-            <div className="rounded-3xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
-              <div className="mb-1 flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
+            <div className="flex flex-col rounded-3xl border border-border/60 bg-card/50 p-5 backdrop-blur-sm">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
                   <KeyRound className="size-4 text-primary" />
                 </div>
                 <div>
                   <h2 className="text-sm font-semibold">API NotLetters</h2>
-                  <p className="text-xs text-muted-foreground">
-                    Chave usada para autenticar o worker
-                  </p>
+                  <p className="text-[11px] text-muted-foreground">Autentica o worker</p>
                 </div>
               </div>
-              <div className="mt-4 flex items-center gap-2">
-                <div className="relative flex-1">
-                  <input
-                    type={showKey ? "text" : "password"}
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="nl_live_••••••••••••••••"
-                    className="w-full rounded-xl border border-input bg-background/60 px-3 py-2.5 pr-10 font-mono text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowKey((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                    aria-label={showKey ? "Esconder chave" : "Mostrar chave"}
-                  >
-                    {showKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
-                </div>
+              <div className="relative">
+                <input
+                  type={showKey ? "text" : "password"}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="nl_live_••••••••••••••••"
+                  className="w-full rounded-xl border border-input bg-background/60 px-3 py-2.5 pr-10 font-mono text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKey((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label={showKey ? "Esconder chave" : "Mostrar chave"}
+                >
+                  {showKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
               </div>
               <div className="mt-3 flex items-center gap-2 text-xs">
                 <span
@@ -515,16 +491,14 @@ export function FarmConsole() {
             </div>
 
             {/* Contas / Emails */}
-            <div className="rounded-3xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
+            <div className="flex flex-col rounded-3xl border border-border/60 bg-card/50 p-5 backdrop-blur-sm">
               <div className="mb-4 flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
                   <Mail className="size-4 text-primary" />
                 </div>
                 <div>
                   <h2 className="text-sm font-semibold">Contas &amp; e-mails</h2>
-                  <p className="text-xs text-muted-foreground">
-                    Pool de contas disponíveis para o farm
-                  </p>
+                  <p className="text-[11px] text-muted-foreground">Pool disponível</p>
                 </div>
               </div>
 
@@ -534,57 +508,49 @@ export function FarmConsole() {
                     value={available}
                     className="font-mono text-3xl font-bold leading-none tabular-nums text-primary text-glow"
                   />
-                  <span className="mt-1 text-xs text-muted-foreground">
-                    contas no pool
-                  </span>
+                  <span className="mt-1 text-[11px] text-muted-foreground">contas no pool</span>
                 </div>
-                <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <ShieldCheck className="size-4 text-primary" />
                   Senhas mascaradas
                 </div>
               </div>
 
-              <Button
-                className="mt-4 w-full"
-                variant="secondary"
-                onClick={() => setModalOpen(true)}
-              >
+              <Button className="mt-4 w-full" variant="secondary" onClick={() => setModalOpen(true)}>
                 <Plus className="size-4" />
                 Adicionar contas
               </Button>
               <p className="mt-2 text-center text-[11px] text-muted-foreground">
-                Formato: e-mail &gt; senha (uma por linha) ou arquivo .txt
+                Formato: e-mail &gt; senha (uma por linha) ou .txt
               </p>
             </div>
 
             {/* Meta de ganhos */}
-            <div className="rounded-3xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
+            <div className="flex flex-col rounded-3xl border border-border/60 bg-card/50 p-5 backdrop-blur-sm">
               <div className="mb-4 flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
                   <Target className="size-4 text-primary" />
                 </div>
                 <div>
                   <h2 className="text-sm font-semibold">Meta de ganhos</h2>
-                  <p className="text-xs text-muted-foreground">
-                    Defina até onde o farm deve ir
-                  </p>
+                  <p className="text-[11px] text-muted-foreground">Até onde o farm vai</p>
                 </div>
               </div>
 
-              <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-border/60 bg-background/40 p-1">
+              <div className="mb-3 grid grid-cols-2 gap-2 rounded-2xl border border-border/60 bg-background/40 p-1">
                 <ModeButton
                   active={mode === "all"}
                   disabled={locked}
                   onClick={() => setMode("all")}
                   icon={InfinityIcon}
-                  label="Farm completo"
+                  label="Completo"
                 />
                 <ModeButton
                   active={mode === "goal"}
                   disabled={locked}
                   onClick={() => setMode("goal")}
                   icon={Target}
-                  label="Por meta ($)"
+                  label="Por meta"
                 />
               </div>
 
@@ -614,11 +580,8 @@ export function FarmConsole() {
                     <div className="mt-3 flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs">
                       <Target className="size-3.5 shrink-0 text-primary" />
                       <span className="text-muted-foreground">
-                        Arredondando para cima:{" "}
-                        <span className="font-mono font-semibold text-primary">
-                          {neededForGoal} contas
-                        </span>{" "}
-                        ={" "}
+                        Arredondando:{" "}
+                        <span className="font-mono font-semibold text-primary">{neededForGoal} contas</span> ={" "}
                         <span className="font-mono font-semibold text-primary">
                           ${(neededForGoal * PER_ACCOUNT).toLocaleString("pt-BR")}
                         </span>
@@ -638,11 +601,7 @@ export function FarmConsole() {
         )}
       </AnimatePresence>
 
-      <AddAccountsModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onAdd={addAccounts}
-      />
+      <AddAccountsModal open={modalOpen} onClose={() => setModalOpen(false)} onAdd={addAccounts} />
 
       <StartFarmDialog
         open={startOpen}
@@ -669,14 +628,14 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`relative flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+      className={`relative flex items-center justify-center gap-2 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
         active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
       }`}
     >
       {active && (
         <motion.span
           layoutId="tab-pill"
-          className="absolute inset-0 rounded-xl bg-primary ring-glow"
+          className="absolute inset-0 rounded-lg bg-primary ring-glow"
           transition={{ type: "spring", stiffness: 400, damping: 32 }}
         />
       )}
@@ -737,17 +696,23 @@ function StatCard({
   tone: "primary" | "muted"
 }) {
   return (
-    <div className="rounded-2xl border border-border/60 bg-card/50 p-4 text-center backdrop-blur-sm">
-      <Icon
-        className={`mx-auto mb-1.5 size-4 ${tone === "primary" ? "text-primary" : "text-muted-foreground"}`}
-      />
-      <AnimatedNumber
-        value={value}
-        className={`block font-mono text-2xl font-bold tabular-nums ${
-          tone === "primary" ? "text-primary text-glow" : "text-foreground"
+    <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/50 p-3 backdrop-blur-sm">
+      <div
+        className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
+          tone === "primary" ? "bg-primary/10" : "bg-muted/50"
         }`}
-      />
-      <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</span>
+      >
+        <Icon className={`size-4 ${tone === "primary" ? "text-primary" : "text-muted-foreground"}`} />
+      </div>
+      <div className="flex flex-col">
+        <AnimatedNumber
+          value={value}
+          className={`font-mono text-xl font-bold leading-none tabular-nums ${
+            tone === "primary" ? "text-primary text-glow" : "text-foreground"
+          }`}
+        />
+        <span className="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
+      </div>
     </div>
   )
 }
