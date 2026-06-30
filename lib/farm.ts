@@ -55,34 +55,55 @@ export const MAX_INVITES = 40
 export const PER_INVITE = 5
 export const MAX_PER_ACCOUNT = MAX_INVITES * PER_INVITE // $200
 
+// Sequência realista do fluxo de uma conta.
+// `weight` controla a duração relativa de cada etapa.
 export const FARM_STEPS = [
-  "Autenticando conta",
-  "Aplicando link de convite",
-  "Convidando usuários",
-  "Confirmando recompensa",
+  { key: "open", label: "Abrindo link de convite", weight: 4 },
+  { key: "email", label: "Gerando e-mail temporário", weight: 4 },
+  { key: "register", label: "Inserindo e-mail no cadastro", weight: 3 },
+  { key: "auth", label: "Autenticando via API", weight: 5 },
+  { key: "code", label: "Aguardando código de verificação", weight: 9 },
+  { key: "fill", label: "Inserindo código de verificação", weight: 3 },
+  { key: "confirm", label: "Confirmando convite", weight: 4 },
+  { key: "reward", label: "Recompensa confirmada", weight: 2 },
 ] as const
 
-// Mapeia o progresso (0-100) de uma conta para a etapa atual + nº de convites
+export const STEP_COUNT = FARM_STEPS.length
+
+// Duração total (ms) por conta: entre 25s e 40s
+export const ACCOUNT_MIN_MS = 25_000
+export const ACCOUNT_MAX_MS = 40_000
+export function randomAccountDuration() {
+  return ACCOUNT_MIN_MS + Math.random() * (ACCOUNT_MAX_MS - ACCOUNT_MIN_MS)
+}
+
+const TOTAL_WEIGHT = FARM_STEPS.reduce((s, st) => s + st.weight, 0)
+
+// Mapeia o progresso (0-100) de uma conta para a etapa atual.
 export function getFarmStep(progress: number): {
   index: number
   label: string
-  invites: number
+  total: number
+  stepProgress: number // 0-1 dentro da etapa atual
 } {
-  let index: number
-  if (progress < 20) index = 0
-  else if (progress < 45) index = 1
-  else if (progress < 90) index = 2
-  else index = 3
-
-  // durante "Convidando usuários" (45-90) o contador sobe até 40
-  let invites = 0
-  if (progress >= 45) {
-    const ratio = Math.min(1, (progress - 45) / (90 - 45))
-    invites = Math.min(MAX_INVITES, Math.round(ratio * MAX_INVITES))
+  const p = Math.max(0, Math.min(100, progress))
+  let acc = 0
+  for (let i = 0; i < FARM_STEPS.length; i++) {
+    const start = (acc / TOTAL_WEIGHT) * 100
+    acc += FARM_STEPS[i].weight
+    const end = (acc / TOTAL_WEIGHT) * 100
+    if (p < end || i === FARM_STEPS.length - 1) {
+      const span = end - start
+      const frac = span > 0 ? (p - start) / span : 1
+      return {
+        index: i,
+        label: FARM_STEPS[i].label,
+        total: FARM_STEPS.length,
+        stepProgress: Math.max(0, Math.min(1, frac)),
+      }
+    }
   }
-  if (progress >= 90) invites = MAX_INVITES
-
-  return { index, label: FARM_STEPS[index], invites }
+  return { index: STEP_COUNT - 1, label: FARM_STEPS[STEP_COUNT - 1].label, total: STEP_COUNT, stepProgress: 1 }
 }
 
 export function maskEmail(email: string) {

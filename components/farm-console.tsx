@@ -18,9 +18,16 @@ import {
   CheckCircle2,
   Loader2,
   Activity,
-  Users,
   Settings as SettingsIcon,
   ShieldCheck,
+  Link2,
+  AtSign,
+  UserPlus,
+  ServerCog,
+  Clock,
+  KeySquare,
+  MousePointerClick,
+  Gift,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AnimatedNumber } from "@/components/animated-number"
@@ -34,9 +41,23 @@ import {
   maskEmail,
   getFarmStep,
   FARM_STEPS,
+  STEP_COUNT,
   MAX_INVITES,
   PER_INVITE,
+  randomAccountDuration,
 } from "@/lib/farm"
+
+// Ícone por etapa (ordem = FARM_STEPS)
+const STEP_ICONS = [
+  Link2,
+  AtSign,
+  UserPlus,
+  ServerCog,
+  Clock,
+  KeySquare,
+  MousePointerClick,
+  Gift,
+]
 
 type FarmState = "idle" | "running" | "paused" | "done"
 type FarmMode = "all" | "goal"
@@ -71,6 +92,9 @@ export function FarmConsole() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const accountsRef = useRef(accounts)
   const progressRef = useRef(0)
+  // Motor baseado em tempo: duração total da conta atual + tempo decorrido
+  const durationRef = useRef(randomAccountDuration())
+  const elapsedRef = useRef(0)
   useEffect(() => {
     accountsRef.current = accounts
   }, [accounts])
@@ -99,17 +123,25 @@ export function FarmConsole() {
       return
     }
 
+    const TICK = 120
     timerRef.current = setInterval(() => {
       const list = accountsRef.current
       if (list.length === 0) return
 
       const current = list[0]
       setActiveEmail(current.email)
-      const step = 6 + Math.random() * 14
-      progressRef.current = Math.min(100, progressRef.current + step)
+
+      elapsedRef.current += TICK
+      progressRef.current = Math.min(
+        100,
+        (elapsedRef.current / durationRef.current) * 100,
+      )
 
       if (progressRef.current >= 100) {
+        // Conta concluída: zera e sorteia nova duração para a próxima
         progressRef.current = 0
+        elapsedRef.current = 0
+        durationRef.current = randomAccountDuration()
         setCurProgress(0)
         setAccounts((prev) => prev.slice(1))
         setUsedCount((u) => u + 1)
@@ -120,7 +152,7 @@ export function FarmConsole() {
       } else {
         setCurProgress(progressRef.current)
       }
-    }, 220)
+    }, TICK)
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
@@ -139,6 +171,7 @@ export function FarmConsole() {
   const coreProgress = state === "done" ? 100 : curProgress
   const locked = state === "running" || state === "paused"
   const activeStep = getFarmStep(curProgress)
+  const ActiveStepIcon = STEP_ICONS[activeStep.index] ?? Loader2
 
   const statusLabel =
     state === "running"
@@ -170,6 +203,8 @@ export function FarmConsole() {
   function reset() {
     if (timerRef.current) clearInterval(timerRef.current)
     progressRef.current = 0
+    elapsedRef.current = 0
+    durationRef.current = randomAccountDuration()
     setCurProgress(0)
     setUsedCount(0)
     setActiveEmail(null)
@@ -439,51 +474,60 @@ export function FarmConsole() {
                             </span>
                           </div>
 
-                          <div className="relative mt-2.5 flex items-center justify-between gap-2">
+                          {/* Etapa atual com ícone */}
+                          <div className="relative mt-3 flex items-center gap-2.5">
                             <AnimatePresence mode="wait">
-                              <motion.span
-                                key={activeStep.label}
-                                initial={{ opacity: 0, y: 4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -4 }}
-                                className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-foreground/70"
+                              <motion.div
+                                key={activeStep.index}
+                                initial={{ opacity: 0, scale: 0.7 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.7 }}
+                                transition={{ duration: 0.2 }}
+                                className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary"
                               >
-                                <span className="flex size-4 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold text-primary">
-                                  {activeStep.index + 1}
-                                </span>
-                                {activeStep.label}
-                              </motion.span>
+                                <ActiveStepIcon className="size-3.5" />
+                              </motion.div>
                             </AnimatePresence>
-                            {activeStep.index === 2 && (
-                              <span className="flex items-center gap-1 font-mono text-[10px] font-semibold tabular-nums text-primary">
-                                <Users className="size-3" />
-                                {activeStep.invites}/{MAX_INVITES} convites
+                            <div className="min-w-0 flex-1">
+                              <AnimatePresence mode="wait">
+                                <motion.p
+                                  key={activeStep.label}
+                                  initial={{ opacity: 0, y: 4 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -4 }}
+                                  className="flex items-center truncate font-mono text-[11px] font-medium text-foreground/90"
+                                >
+                                  {activeStep.label}
+                                  {activeStep.index === 4 && <WaitingDots />}
+                                </motion.p>
+                              </AnimatePresence>
+                              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+                                Etapa {activeStep.index + 1} de {STEP_COUNT}
                               </span>
-                            )}
+                            </div>
                           </div>
 
-                          {/* Animação de convite: grade de pontos que acendem */}
-                          <AnimatePresence>
-                            {activeStep.index === 2 && (
-                              <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: "auto" }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="overflow-hidden"
-                              >
-                                <InviteDots count={activeStep.invites} total={MAX_INVITES} />
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-
+                          {/* Trilha segmentada (preenche a etapa atual gradualmente) */}
                           <div className="relative mt-3 flex gap-1">
                             {FARM_STEPS.map((_, i) => (
-                              <span
+                              <div
                                 key={i}
-                                className={`h-0.5 flex-1 rounded-full transition-colors ${
-                                  i <= activeStep.index ? "bg-primary" : "bg-muted"
-                                }`}
-                              />
+                                className="h-1 flex-1 overflow-hidden rounded-full bg-muted"
+                              >
+                                <motion.div
+                                  className="h-full rounded-full bg-primary"
+                                  initial={false}
+                                  animate={{
+                                    width:
+                                      i < activeStep.index
+                                        ? "100%"
+                                        : i === activeStep.index
+                                          ? `${activeStep.stepProgress * 100}%`
+                                          : "0%",
+                                  }}
+                                  transition={{ duration: 0.15, ease: "linear" }}
+                                />
+                              </div>
                             ))}
                           </div>
                         </motion.div>
@@ -684,26 +728,20 @@ export function FarmConsole() {
 
 /* ---------- helpers ---------- */
 
-function InviteDots({ count, total }: { count: number; total: number }) {
+// Reticências animadas para etapas de espera
+function WaitingDots() {
   return (
-    <div className="mt-3 flex flex-wrap gap-1">
-      {Array.from({ length: total }).map((_, i) => {
-        const filled = i < count
-        const isLatest = i === count - 1
-        return (
-          <motion.span
-            key={i}
-            className={`size-2 rounded-sm ${filled ? "bg-primary" : "bg-muted"}`}
-            animate={
-              isLatest
-                ? { scale: [1, 1.6, 1], boxShadow: ["0 0 0 oklch(0.8 0.2 152 / 0)", "0 0 8px oklch(0.8 0.2 152 / 0.9)", "0 0 4px oklch(0.8 0.2 152 / 0.4)"] }
-                : { scale: 1 }
-            }
-            transition={{ duration: 0.4 }}
-          />
-        )
-      })}
-    </div>
+    <span className="ml-0.5 inline-flex">
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          animate={{ opacity: [0.2, 1, 0.2] }}
+          transition={{ duration: 1.1, repeat: Infinity, delay: i * 0.18 }}
+        >
+          .
+        </motion.span>
+      ))}
+    </span>
   )
 }
 
