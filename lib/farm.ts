@@ -46,6 +46,10 @@ export function parseAccounts(raw: string): Account[] {
     .filter((a) => a.email.includes("@") && a.password.length > 0)
 }
 
+export function serializeAccounts(accounts: Account[]): string {
+  return accounts.map((a) => `${a.email} > ${a.password}`).join("\n")
+}
+
 export function maskEmail(email: string) {
   const [user, domain] = email.split("@")
   if (!user || !domain) return email

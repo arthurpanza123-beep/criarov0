@@ -14,13 +14,13 @@ export function Navbar() {
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 ring-glow">
+          <div className="flex size-11 items-center justify-center rounded-xl border border-primary/30 bg-primary/15 ring-glow">
             <Image
-              src="/credit-farm-icon.png"
+              src="/credit-farm-white.png"
               alt="Credit Farm"
               width={64}
               height={64}
-              className="h-8 w-8 object-contain"
+              className="h-9 w-9 object-contain"
               priority
             />
           </div>
