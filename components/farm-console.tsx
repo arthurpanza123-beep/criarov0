@@ -18,7 +18,7 @@ import {
   Plus,
   CheckCircle2,
   Loader2,
-  Inbox,
+  Activity,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AnimatedNumber } from "@/components/animated-number"
@@ -139,15 +139,12 @@ export function FarmConsole() {
     setState("idle")
   }
 
-  function loadAccounts(raw: string) {
-    setRawAccounts(raw)
-    setAccounts(parseAccounts(raw))
-    setUsedCount(0)
-    setFeed([])
-    setActiveEmail(null)
-    progressRef.current = 0
-    setCurProgress(0)
-    setState("idle")
+  // Adiciona NOVAS contas ao pool (anexa, sem mostrar as existentes)
+  function addAccounts(raw: string) {
+    const incoming = parseAccounts(raw)
+    if (incoming.length === 0) return
+    setRawAccounts((prev) => (prev.trim() ? `${prev.trim()}\n${raw.trim()}` : raw.trim()))
+    setAccounts((prev) => [...prev, ...incoming])
     setModalOpen(false)
   }
 
@@ -382,39 +379,28 @@ export function FarmConsole() {
           </AnimatePresence>
         </div>
 
-        {/* Pool de contas + feed ao vivo */}
+        {/* Atividade ao vivo */}
         <div className="rounded-2xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <Mail className="size-4 text-primary" />
-              Contas
-            </label>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setModalOpen(true)}
-              disabled={locked}
-            >
+            <div className="flex flex-col">
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <Activity className="size-4 text-primary" />
+                Atividade ao vivo
+              </label>
+              <span className="mt-0.5 text-xs text-muted-foreground">
+                {feed.length > 0
+                  ? `${feed.length} contas farmadas nesta sessão`
+                  : "Processando e concluídas aparecem aqui"}
+              </span>
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => setModalOpen(true)}>
               <Plus className="size-4" />
-              {available > 0 ? "Gerenciar" : "Adicionar"}
+              Adicionar
             </Button>
           </div>
 
-          {/* Resumo do pool */}
-          <div className="mb-4 flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-            <Inbox className="size-5 text-primary" />
-            <div className="flex-1">
-              <p className="text-sm font-medium">
-                <span className="font-mono text-primary">{available}</span> contas no pool
-              </p>
-              <p className="text-xs text-muted-foreground">
-                As farmadas saem do pool e aparecem abaixo
-              </p>
-            </div>
-          </div>
-
           {/* Feed ao vivo — aparece de pouco em pouco */}
-          <div className="relative max-h-72 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-2">
+          <div className="relative max-h-72 space-y-1.5 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-2">
             {/* Conta em processamento */}
             <AnimatePresence>
               {state === "running" && activeEmail && (
@@ -424,13 +410,18 @@ export function FarmConsole() {
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="mb-1.5 flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5"
+                  className="relative flex items-center gap-3 overflow-hidden rounded-lg border border-primary/40 bg-primary/10 px-3 py-2.5"
                 >
-                  <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
-                  <span className="flex-1 truncate font-mono text-xs text-primary">
+                  <motion.div
+                    className="pointer-events-none absolute inset-y-0 left-0 bg-primary/15"
+                    animate={{ width: `${curProgress}%` }}
+                    transition={{ duration: 0.2, ease: "linear" }}
+                  />
+                  <Loader2 className="relative size-4 shrink-0 animate-spin text-primary" />
+                  <span className="relative flex-1 truncate font-mono text-xs font-medium text-primary">
                     {maskEmail(activeEmail)}
                   </span>
-                  <span className="font-mono text-[11px] text-primary">
+                  <span className="relative font-mono text-[11px] font-semibold text-primary">
                     {Math.round(curProgress)}%
                   </span>
                 </motion.div>
@@ -439,25 +430,28 @@ export function FarmConsole() {
 
             {/* Contas já farmadas */}
             {feed.length === 0 && state !== "running" ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-10 text-center text-muted-foreground">
-                <MailCheck className="size-7 opacity-50" />
-                <p className="text-sm">As contas farmadas aparecerão aqui</p>
+              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-muted-foreground">
+                <div className="flex size-12 items-center justify-center rounded-full border border-border/60 bg-muted/40">
+                  <MailCheck className="size-6 opacity-60" />
+                </div>
+                <p className="text-sm">Nada por aqui ainda</p>
+                <p className="text-xs">Inicie o farm para ver as contas processadas</p>
               </div>
             ) : (
               <AnimatePresence initial={false}>
-                {feed.map((item) => (
+                {feed.map((item, i) => (
                   <motion.div
                     key={item.id}
                     layout
                     initial={{ opacity: 0, x: -12, height: 0 }}
                     animate={{ opacity: 1, x: 0, height: "auto" }}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2"
+                    className="flex items-center gap-3 rounded-lg border border-border/40 bg-card/40 px-3 py-2"
                   >
                     <CheckCircle2 className="size-4 shrink-0 text-primary" />
                     <span className="flex-1 truncate font-mono text-xs text-foreground/80">
                       {maskEmail(item.email)}
                     </span>
-                    <span className="shrink-0 font-mono text-[11px] font-semibold text-primary">
+                    <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-primary">
                       +$5
                     </span>
                   </motion.div>
@@ -470,9 +464,8 @@ export function FarmConsole() {
 
       <AddAccountsModal
         open={modalOpen}
-        initialValue={rawAccounts}
         onClose={() => setModalOpen(false)}
-        onConfirm={loadAccounts}
+        onAdd={addAccounts}
       />
     </section>
   )

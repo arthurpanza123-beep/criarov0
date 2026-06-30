@@ -2,28 +2,26 @@
 
 import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { X, Upload, FileText, CheckCircle2 } from "lucide-react"
+import { X, Upload, FileText, CheckCircle2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { parseAccounts } from "@/lib/farm"
 
 export function AddAccountsModal({
   open,
-  initialValue,
   onClose,
-  onConfirm,
+  onAdd,
 }: {
   open: boolean
-  initialValue: string
   onClose: () => void
-  onConfirm: (raw: string) => void
+  onAdd: (raw: string) => void
 }) {
-  const [draft, setDraft] = useState(initialValue)
+  const [draft, setDraft] = useState("")
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Sincroniza o rascunho sempre que abre
+  // Começa sempre vazio — o modal serve só para adicionar NOVAS contas
   useEffect(() => {
-    if (open) setDraft(initialValue)
-  }, [open, initialValue])
+    if (open) setDraft("")
+  }, [open])
 
   // Fecha com ESC
   useEffect(() => {
@@ -45,6 +43,12 @@ export function AddAccountsModal({
     if (fileRef.current) fileRef.current.value = ""
   }
 
+  function confirm() {
+    if (count === 0) return
+    onAdd(draft)
+    setDraft("")
+  }
+
   return (
     <AnimatePresence>
       {open && (
@@ -56,7 +60,7 @@ export function AddAccountsModal({
         >
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-background/80 backdrop-blur-md"
             onClick={onClose}
             aria-hidden
           />
@@ -65,22 +69,25 @@ export function AddAccountsModal({
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label="Adicionar contas"
+            aria-label="Adicionar novas contas"
             initial={{ opacity: 0, scale: 0.95, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ type: "spring", stiffness: 320, damping: 30 }}
             className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-primary/30 bg-card p-6 shadow-2xl ring-glow"
           >
-            <div className="mb-4 flex items-start justify-between">
-              <div>
-                <h2 className="flex items-center gap-2 text-lg font-bold">
-                  <Upload className="size-5 text-primary" />
-                  Adicionar contas
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Cole ou suba um arquivo. Elas vão aparecendo durante o farm.
-                </p>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+            <div className="mb-5 flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl border border-primary/30 bg-primary/10">
+                  <Plus className="size-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold leading-tight">Adicionar contas</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Novas contas entram no pool de farm
+                  </p>
+                </div>
               </div>
               <button
                 onClick={onClose}
@@ -118,7 +125,7 @@ export function AddAccountsModal({
               className="w-full resize-none rounded-lg border border-input bg-background/60 p-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
             />
 
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               <CheckCircle2 className="size-3.5 text-primary" />
               <span className="font-mono font-semibold text-primary">{count}</span> contas
               detectadas · formatos{" "}
@@ -130,12 +137,9 @@ export function AddAccountsModal({
               <Button variant="outline" onClick={onClose} className="flex-1">
                 Cancelar
               </Button>
-              <Button
-                onClick={() => onConfirm(draft)}
-                disabled={count === 0}
-                className="flex-1 ring-glow"
-              >
-                Carregar {count > 0 ? `${count} contas` : "contas"}
+              <Button onClick={confirm} disabled={count === 0} className="flex-1 ring-glow">
+                <Plus className="size-4" />
+                Adicionar {count > 0 ? `${count} contas` : "contas"}
               </Button>
             </div>
           </motion.div>
