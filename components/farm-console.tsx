@@ -234,7 +234,8 @@ export function FarmConsole() {
             {/* Coluna esquerda: núcleo + stats + controles */}
             <div className="flex min-h-0 flex-col gap-3">
               {/* Núcleo + Ganhos */}
-              <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-3xl border border-primary/30 bg-card/50 p-5 backdrop-blur-sm ring-glow">
+              <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-b from-card/70 to-card/30 p-5 shadow-[0_8px_40px_-12px_oklch(0.82_0.23_150_/_0.3)] backdrop-blur-xl ring-glow">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
                 <div className="pointer-events-none absolute inset-0 bg-grid opacity-25" />
                 {state === "running" && (
                   <div className="pointer-events-none absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
@@ -325,7 +326,8 @@ export function FarmConsole() {
             </div>
 
             {/* Coluna direita: atividade ao vivo */}
-            <div className="flex min-h-0 flex-col rounded-3xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm">
+            <div className="relative flex min-h-0 flex-col overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-b from-card/70 to-card/30 p-4 shadow-[0_8px_40px_-16px_oklch(0_0_0_/_0.6)] backdrop-blur-xl">
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
               <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
                 <div className="flex flex-col">
                   <label className="flex items-center gap-2 text-sm font-medium">
@@ -696,7 +698,7 @@ function StatCard({
   tone: "primary" | "muted"
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/50 p-3 backdrop-blur-sm">
+    <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-gradient-to-b from-card/70 to-card/30 p-3 backdrop-blur-xl">
       <div
         className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
           tone === "primary" ? "bg-primary/10" : "bg-muted/50"
