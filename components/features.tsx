@@ -1,23 +1,23 @@
 "use client"
 
 import { motion } from "motion/react"
-import { KeyRound, ListChecks, Gauge, Sparkles, Mail, Cpu } from "lucide-react"
+import { KeyRound, Target, DollarSign, Sparkles, Mail, Cpu } from "lucide-react"
 
 const features = [
+  {
+    icon: DollarSign,
+    title: "$5 por conta farmada",
+    desc: "Cada conta processada com sucesso vira dólar. Acompanhe seus ganhos subindo em tempo real, com valor por conta configurável.",
+  },
+  {
+    icon: Target,
+    title: "Meta inteligente",
+    desc: "Defina quanto quer ganhar — ex: $357 — e o Credit Farm arredonda para cima o número de contas necessárias automaticamente.",
+  },
   {
     icon: KeyRound,
     title: "API NotLetters integrada",
     desc: "Cole sua chave da API NotLetters e o worker autentica automaticamente cada requisição do farm.",
-  },
-  {
-    icon: ListChecks,
-    title: "Fila de contas",
-    desc: "Carregue centenas de contas no formato email > senha e gerencie tudo em uma fila inteligente.",
-  },
-  {
-    icon: Gauge,
-    title: "Progresso em tempo real",
-    desc: "Cada conta mostra seu progresso individual com animações fluidas e estados de cor.",
   },
   {
     icon: Mail,

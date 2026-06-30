@@ -10,9 +10,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'FarmFlow — Automação de Farm v0',
+  title: 'Credit Farm — Transforme contas em dólares',
   description:
-    'Plataforma premium para automatizar farm de contas com a API NotLetters. Controle, monitore e visualize seu farm em tempo real.',
+    'Plataforma premium para farmar contas com a API NotLetters. Ganhe $5 por conta, defina metas em dólares e acompanhe seus ganhos em tempo real.',
   generator: 'v0.app',
   icons: {
     icon: [

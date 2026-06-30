@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "motion/react"
-import { Sprout } from "lucide-react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 
 export function Navbar() {
@@ -13,13 +13,15 @@ export function Navbar() {
       className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl"
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <a href="#" className="flex items-center gap-2">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground ring-glow">
-            <Sprout className="size-5" />
-          </span>
-          <span className="text-lg font-semibold tracking-tight">
-            Farm<span className="text-primary">Flow</span>
-          </span>
+        <a href="#" className="flex items-center gap-2.5">
+          <Image
+            src="/credit-farm-logo.png"
+            alt="Credit Farm"
+            width={200}
+            height={200}
+            className="h-11 w-auto object-contain object-left invert"
+            priority
+          />
         </a>
 
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">

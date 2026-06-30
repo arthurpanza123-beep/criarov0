@@ -1,7 +1,8 @@
 "use client"
 
 import { motion } from "motion/react"
-import { ArrowRight, Zap, ShieldCheck, Activity } from "lucide-react"
+import Image from "next/image"
+import { ArrowRight, DollarSign, ShieldCheck, Gauge } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const container = {
@@ -26,6 +27,17 @@ export function Hero() {
         animate="show"
         className="relative mx-auto flex max-w-6xl flex-col items-center px-4 py-24 text-center md:py-32"
       >
+        <motion.div variants={item} className="mb-8">
+          <Image
+            src="/credit-farm-logo.png"
+            alt="Credit Farm"
+            width={420}
+            height={420}
+            className="h-28 w-auto object-contain invert drop-shadow-[0_0_30px_oklch(0.78_0.19_155/0.35)] md:h-36"
+            priority
+          />
+        </motion.div>
+
         <motion.span
           variants={item}
           className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary"
@@ -34,24 +46,24 @@ export function Hero() {
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
             <span className="relative inline-flex size-2 rounded-full bg-primary" />
           </span>
-          Automação de farm em tempo real
+          $5 por conta farmada · pagamento automático
         </motion.span>
 
         <motion.h1
           variants={item}
           className="max-w-3xl text-balance text-5xl font-bold leading-tight tracking-tight md:text-7xl"
         >
-          Faça seu farm de contas{" "}
-          <span className="text-primary text-glow">no piloto automático</span>
+          Transforme contas em{" "}
+          <span className="text-primary text-glow">dólares no automático</span>
         </motion.h1>
 
         <motion.p
           variants={item}
           className="mt-6 max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground"
         >
-          Conecte sua API NotLetters, carregue suas contas e deixe o FarmFlow
-          rodar. Acompanhe cada conta processada com animações fluidas e
-          visualize quantos e-mails ainda restam.
+          Conecte sua API NotLetters, carregue suas contas e defina uma meta em
+          dólares. O Credit Farm calcula quantas contas precisa, roda no piloto
+          automático e mostra seus ganhos crescendo em tempo real.
         </motion.p>
 
         <motion.div variants={item} className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -71,9 +83,9 @@ export function Hero() {
           className="mt-16 grid w-full max-w-2xl grid-cols-1 gap-4 sm:grid-cols-3"
         >
           {[
-            { icon: Zap, label: "Farm acelerado", value: "10x" },
+            { icon: DollarSign, label: "Por conta farmada", value: "$5" },
             { icon: ShieldCheck, label: "Uptime do worker", value: "99.9%" },
-            { icon: Activity, label: "Contas em paralelo", value: "∞" },
+            { icon: Gauge, label: "Meta automática", value: "∞" },
           ].map((s) => (
             <div
               key={s.label}

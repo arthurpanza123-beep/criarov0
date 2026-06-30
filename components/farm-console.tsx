@@ -14,6 +14,10 @@ import {
   Mail,
   MailCheck,
   Clock,
+  DollarSign,
+  Target,
+  Infinity as InfinityIcon,
+  Coins,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AnimatedNumber } from "@/components/animated-number"
@@ -26,6 +30,7 @@ import {
 } from "@/lib/farm"
 
 type FarmState = "idle" | "running" | "paused" | "done"
+type FarmMode = "all" | "goal"
 
 export function FarmConsole() {
   const [apiKey, setApiKey] = useState("")
@@ -36,9 +41,14 @@ export function FarmConsole() {
   )
   const [state, setState] = useState<FarmState>("idle")
   const [activeId, setActiveId] = useState<string | null>(null)
+
+  // Configuração de ganhos
+  const [perAccount, setPerAccount] = useState(5)
+  const [mode, setMode] = useState<FarmMode>("all")
+  const [goalUsd, setGoalUsd] = useState(357)
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Sincroniza textarea -> contas quando ocioso
   const syncAccounts = useCallback(() => {
     if (state === "idle" || state === "done") {
       setAccounts(parseAccounts(rawAccounts))
@@ -48,7 +58,18 @@ export function FarmConsole() {
   const total = accounts.length
   const doneCount = accounts.filter((a) => a.status === "done").length
   const available = total - doneCount
-  const overall = total === 0 ? 0 : Math.round((doneCount / total) * 100)
+
+  // Meta: arredonda SEMPRE para cima o nº de contas necessárias
+  const neededForGoal = Math.ceil(goalUsd / Math.max(1, perAccount))
+  const targetCount = mode === "goal" ? Math.min(total, neededForGoal) : total
+  const overall = targetCount === 0 ? 0 : Math.round((doneCount / targetCount) * 100)
+
+  const earnings = doneCount * perAccount
+  const projected = targetCount * perAccount
+
+  // ref para o loop ler o alvo atualizado
+  const targetRef = useRef(targetCount)
+  targetRef.current = targetCount
 
   // Loop de farm
   useEffect(() => {
@@ -60,14 +81,13 @@ export function FarmConsole() {
     timerRef.current = setInterval(() => {
       setAccounts((prev) => {
         const next = [...prev]
-        // encontra conta atual ou próxima ociosa
+        const completed = next.filter((a) => a.status === "done").length
+        if (completed >= targetRef.current) return next
+
         let idx = next.findIndex((a) => a.status === "running")
         if (idx === -1) {
           idx = next.findIndex((a) => a.status === "idle")
-          if (idx === -1) {
-            // tudo concluído
-            return next
-          }
+          if (idx === -1) return next
           next[idx] = { ...next[idx], status: "running" }
           setActiveId(next[idx].id)
         }
@@ -88,21 +108,25 @@ export function FarmConsole() {
     }
   }, [state])
 
-  // Detecta conclusão total
+  // Detecta conclusão (total ou meta)
   useEffect(() => {
-    if (state === "running" && total > 0 && doneCount === total) {
+    if (state === "running" && targetCount > 0 && doneCount >= targetCount) {
       setState("done")
       setActiveId(null)
     }
-  }, [doneCount, total, state])
+  }, [doneCount, targetCount, state])
 
   const activeProgress = (() => {
     if (state === "done") return 100
     const active = accounts.find((a) => a.id === activeId)
-    const base = (doneCount / Math.max(1, total)) * 100
-    const partial = active ? (active.progress / 100) * (100 / Math.max(1, total)) : 0
+    const base = (doneCount / Math.max(1, targetCount)) * 100
+    const partial = active
+      ? (active.progress / 100) * (100 / Math.max(1, targetCount))
+      : 0
     return Math.min(100, base + partial)
   })()
+
+  const locked = state === "running" || state === "paused"
 
   function start() {
     if (total === 0) return
@@ -126,7 +150,7 @@ export function FarmConsole() {
           Console de <span className="text-primary">Farm</span>
         </h2>
         <p className="mt-4 text-muted-foreground">
-          Configure, carregue suas contas e controle a automação ao vivo.
+          Configure seus ganhos, defina uma meta e controle a automação ao vivo.
         </p>
       </div>
 
@@ -169,6 +193,99 @@ export function FarmConsole() {
             </p>
           </div>
 
+          {/* Configuração de ganhos */}
+          <div className="rounded-2xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
+            <label className="mb-4 flex items-center gap-2 text-sm font-medium">
+              <Coins className="size-4 text-primary" />
+              Configuração de ganhos
+            </label>
+
+            {/* Valor por conta */}
+            <div className="mb-5">
+              <span className="mb-1.5 block text-xs text-muted-foreground">
+                Valor por conta farmada (USD)
+              </span>
+              <div className="relative">
+                <DollarSign className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={perAccount}
+                  disabled={locked}
+                  onChange={(e) => setPerAccount(Math.max(1, Number(e.target.value) || 0))}
+                  className="w-full rounded-lg border border-input bg-background/60 py-2.5 pl-9 pr-3 font-mono text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                />
+              </div>
+            </div>
+
+            {/* Modo */}
+            <span className="mb-1.5 block text-xs text-muted-foreground">Modo do farm</span>
+            <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-border/60 bg-background/40 p-1">
+              <ModeButton
+                active={mode === "all"}
+                disabled={locked}
+                onClick={() => setMode("all")}
+                icon={InfinityIcon}
+                label="Farm completo"
+              />
+              <ModeButton
+                active={mode === "goal"}
+                disabled={locked}
+                onClick={() => setMode("goal")}
+                icon={Target}
+                label="Por meta ($)"
+              />
+            </div>
+
+            {/* Meta */}
+            <AnimatePresence initial={false}>
+              {mode === "goal" && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <span className="mb-1.5 block text-xs text-muted-foreground">
+                    Meta em dólares
+                  </span>
+                  <div className="relative">
+                    <DollarSign className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
+                    <input
+                      type="number"
+                      min={perAccount}
+                      step={perAccount}
+                      value={goalUsd}
+                      disabled={locked}
+                      onChange={(e) => setGoalUsd(Math.max(0, Number(e.target.value) || 0))}
+                      className="w-full rounded-lg border border-input bg-background/60 py-2.5 pl-9 pr-3 font-mono text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                    />
+                  </div>
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs">
+                    <Target className="size-3.5 shrink-0 text-primary" />
+                    <span className="text-muted-foreground">
+                      Arredondando para cima:{" "}
+                      <span className="font-mono font-semibold text-primary">
+                        {neededForGoal} contas
+                      </span>{" "}
+                      ={" "}
+                      <span className="font-mono font-semibold text-primary">
+                        ${(neededForGoal * perAccount).toLocaleString("pt-BR")}
+                      </span>
+                      {neededForGoal > total && (
+                        <span className="text-destructive">
+                          {" "}
+                          — faltam {neededForGoal - total} contas na lista
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           {/* Contas */}
           <div id="contas" className="rounded-2xl border border-border/60 bg-card/50 p-6 backdrop-blur-sm">
             <div className="mb-3 flex items-center justify-between">
@@ -184,7 +301,7 @@ export function FarmConsole() {
               value={rawAccounts}
               onChange={(e) => setRawAccounts(e.target.value)}
               onBlur={syncAccounts}
-              disabled={state === "running" || state === "paused"}
+              disabled={locked}
               rows={8}
               spellCheck={false}
               className="w-full resize-none rounded-lg border border-input bg-background/60 p-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
@@ -218,6 +335,54 @@ export function FarmConsole() {
 
         {/* Coluna direita: monitor */}
         <div className="flex flex-col gap-6">
+          {/* Banner de ganhos */}
+          <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-card/50 p-6 backdrop-blur-sm ring-glow">
+            <div className="pointer-events-none absolute inset-0 bg-grid opacity-20" />
+            {state === "running" && (
+              <div className="pointer-events-none absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
+            )}
+            <div className="relative flex items-center justify-between">
+              <div>
+                <span className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
+                  <DollarSign className="size-3.5 text-primary" />
+                  Ganhos acumulados
+                </span>
+                <AnimatedNumber
+                  value={earnings}
+                  prefix="$"
+                  decimals={0}
+                  className="mt-1 block font-mono text-4xl font-bold tabular-nums text-primary text-glow md:text-5xl"
+                />
+              </div>
+              <div className="text-right">
+                <span className="block text-xs text-muted-foreground">
+                  {mode === "goal" ? "Meta" : "Projeção total"}
+                </span>
+                <span className="font-mono text-lg font-semibold text-foreground">
+                  ${ (mode === "goal" ? neededForGoal * perAccount : projected).toLocaleString("pt-BR") }
+                </span>
+              </div>
+            </div>
+
+            {/* progresso da meta */}
+            <div className="relative mt-4">
+              <div className="mb-1.5 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  {doneCount}/{targetCount} contas
+                </span>
+                <span className="font-mono font-semibold text-primary">{overall}%</span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+                <motion.div
+                  className="h-full rounded-full bg-primary"
+                  animate={{ width: `${overall}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  style={{ boxShadow: "0 0 12px var(--primary)" }}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Núcleo de farm */}
           <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-border/60 bg-card/50 p-8 backdrop-blur-sm">
             <div className="pointer-events-none absolute inset-0 bg-grid opacity-30" />
@@ -240,7 +405,9 @@ export function FarmConsole() {
                 )}
                 {state === "paused" && "Farm pausado — clique em retomar"}
                 {state === "done" && (
-                  <span className="font-medium text-primary">Farm concluído com sucesso! 🎉</span>
+                  <span className="font-medium text-primary">
+                    Meta atingida! +${earnings.toLocaleString("pt-BR")} farmados
+                  </span>
                 )}
               </motion.p>
             </AnimatePresence>
@@ -248,40 +415,53 @@ export function FarmConsole() {
 
           {/* Stats de e-mails */}
           <div className="grid grid-cols-3 gap-3">
-            <StatCard
-              icon={Mail}
-              label="Disponíveis"
-              value={available}
-              tone="primary"
-            />
+            <StatCard icon={Mail} label="Disponíveis" value={available} tone="primary" />
             <StatCard icon={MailCheck} label="Usados" value={doneCount} tone="muted" />
             <StatCard icon={Clock} label="Total" value={total} tone="muted" />
-          </div>
-
-          {/* Barra de progresso geral */}
-          <div className="rounded-2xl border border-border/60 bg-card/50 p-5 backdrop-blur-sm">
-            <div className="mb-2 flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Progresso geral</span>
-              <span className="font-mono font-semibold text-foreground">{overall}%</span>
-            </div>
-            <div className="relative h-2.5 overflow-hidden rounded-full bg-muted">
-              <motion.div
-                className="absolute inset-y-0 left-0 rounded-full bg-primary"
-                animate={{ width: `${overall}%` }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                style={{ boxShadow: "0 0 12px var(--primary)" }}
-              />
-              {state === "running" && (
-                <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-              )}
-            </div>
           </div>
         </div>
       </div>
 
       {/* Lista de contas */}
-      <AccountList accounts={accounts} activeId={activeId} />
+      <AccountList accounts={accounts} activeId={activeId} targetCount={targetCount} />
     </section>
+  )
+}
+
+function ModeButton({
+  active,
+  disabled,
+  onClick,
+  icon: Icon,
+  label,
+}: {
+  active: boolean
+  disabled?: boolean
+  onClick: () => void
+  icon: typeof Target
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+        active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {active && (
+        <motion.span
+          layoutId="mode-pill"
+          className="absolute inset-0 rounded-lg bg-primary"
+          transition={{ type: "spring", stiffness: 400, damping: 32 }}
+        />
+      )}
+      <span className="relative flex items-center gap-2">
+        <Icon className="size-4" />
+        {label}
+      </span>
+    </button>
   )
 }
 
@@ -315,50 +495,56 @@ function StatCard({
 function AccountList({
   accounts,
   activeId,
+  targetCount,
 }: {
   accounts: Account[]
   activeId: string | null
+  targetCount: number
 }) {
   return (
     <div className="mt-6 overflow-hidden rounded-2xl border border-border/60 bg-card/50 backdrop-blur-sm">
       <div className="flex items-center justify-between border-b border-border/60 px-5 py-3">
         <h3 className="text-sm font-semibold">Fila de contas</h3>
-        <span className="font-mono text-xs text-muted-foreground">{accounts.length} itens</span>
+        <span className="font-mono text-xs text-muted-foreground">
+          alvo: {targetCount} de {accounts.length}
+        </span>
       </div>
       <ul className="divide-y divide-border/40">
         <AnimatePresence initial={false}>
-          {accounts.map((a) => (
-            <motion.li
-              key={a.id}
-              layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className={`relative flex items-center gap-3 px-5 py-3 transition-colors ${
-                a.id === activeId ? "bg-primary/5" : ""
-              }`}
-            >
-              {/* indicador de scan na conta ativa */}
-              {a.id === activeId && a.status === "running" && (
-                <span className="absolute inset-y-0 left-0 w-0.5 bg-primary" />
-              )}
-              <StatusDot status={a.status} active={a.id === activeId} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="truncate font-mono text-sm">{maskEmail(a.email)}</span>
-                  <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                    {a.status === "done" ? "100%" : `${Math.round(a.progress)}%`}
-                  </span>
+          {accounts.map((a, i) => {
+            const beyondTarget = i >= targetCount
+            return (
+              <motion.li
+                key={a.id}
+                layout
+                initial={{ opacity: 0 }}
+                animate={{ opacity: beyondTarget ? 0.4 : 1 }}
+                className={`relative flex items-center gap-3 px-5 py-3 transition-colors ${
+                  a.id === activeId ? "bg-primary/5" : ""
+                }`}
+              >
+                {a.id === activeId && a.status === "running" && (
+                  <span className="absolute inset-y-0 left-0 w-0.5 bg-primary" />
+                )}
+                <StatusDot status={a.status} active={a.id === activeId} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="truncate font-mono text-sm">{maskEmail(a.email)}</span>
+                    <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                      {a.status === "done" ? "100%" : `${Math.round(a.progress)}%`}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
+                    <motion.div
+                      className={`h-full rounded-full ${a.status === "done" ? "bg-primary" : "bg-primary/70"}`}
+                      animate={{ width: `${a.status === "done" ? 100 : a.progress}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
                 </div>
-                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
-                  <motion.div
-                    className={`h-full rounded-full ${a.status === "done" ? "bg-primary" : "bg-primary/70"}`}
-                    animate={{ width: `${a.status === "done" ? 100 : a.progress}%` }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </div>
-              </div>
-            </motion.li>
-          ))}
+              </motion.li>
+            )
+          })}
         </AnimatePresence>
       </ul>
     </div>
