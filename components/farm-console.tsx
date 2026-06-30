@@ -36,14 +36,14 @@ import {
   getFarmStep,
   FARM_STEPS,
   MAX_INVITES,
+  PER_INVITE,
+  MAX_PER_ACCOUNT,
 } from "@/lib/farm"
 
 type FarmState = "idle" | "running" | "paused" | "done"
 type FarmMode = "all" | "goal"
 type FeedItem = { id: string; email: string; t: string }
 type Tab = "farm" | "settings"
-
-const PER_ACCOUNT = 5
 
 function nowTime() {
   return new Date().toLocaleTimeString("pt-BR", { hour12: false })
@@ -66,9 +66,9 @@ export function FarmConsole() {
   const [startOpen, setStartOpen] = useState(false)
   const [config, setConfig] = useState<StartConfig | null>(null)
 
-  // Meta de ganhos (valor por conta é fixo: $5)
+  // Meta de ganhos ($5 por convite · até $200 por conta)
   const [mode, setMode] = useState<FarmMode>("all")
-  const [goalUsd, setGoalUsd] = useState(355)
+  const [goalUsd, setGoalUsd] = useState(400)
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const accountsRef = useRef(accounts)
@@ -78,15 +78,16 @@ export function FarmConsole() {
   }, [accounts])
 
   const available = accounts.length
-  const earnings = usedCount * PER_ACCOUNT
+  // Cada conta farmada rende até $200 (40 convites × $5)
+  const earnings = usedCount * MAX_PER_ACCOUNT
 
-  // Meta: arredonda SEMPRE para cima o nº de contas necessárias
-  const neededForGoal = Math.ceil(goalUsd / PER_ACCOUNT)
+  // Meta: arredonda SEMPRE para cima o nº de CONTAS necessárias ($200/conta)
+  const neededForGoal = Math.ceil(goalUsd / MAX_PER_ACCOUNT)
   // Capacidade total considerando contas já usadas + disponíveis
   const capacityAccounts = available + usedCount
   const missingAccounts =
     mode === "goal" ? Math.max(0, neededForGoal - capacityAccounts) : 0
-  const missingUsd = missingAccounts * PER_ACCOUNT
+  const missingUsd = missingAccounts * MAX_PER_ACCOUNT
 
   const overall =
     mode === "goal"
@@ -363,10 +364,11 @@ export function FarmConsole() {
                   </div>
 
                   {/* Leituras de dados */}
-                  <div className="grid shrink-0 grid-cols-3 divide-x divide-border border-y border-border">
+                  <div className="grid shrink-0 grid-cols-4 divide-x divide-border border-y border-border">
                     <Readout label="Disponíveis" value={available} accent />
                     <Readout label="Usadas" value={usedCount} />
-                    <Readout label="Por conta" value={PER_ACCOUNT} prefix="$" />
+                    <Readout label="$/convite" value={PER_INVITE} prefix="$" />
+                    <Readout label="Máx/conta" value={MAX_PER_ACCOUNT} prefix="$" />
                   </div>
 
                   {/* Aviso: meta maior que a capacidade das contas */}
@@ -662,8 +664,8 @@ export function FarmConsole() {
                           <DollarSign className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
                           <input
                             type="number"
-                            min={PER_ACCOUNT}
-                            step={PER_ACCOUNT}
+                            min={PER_INVITE}
+                            step={PER_INVITE}
                             value={goalUsd}
                             disabled={locked}
                             onChange={(e) => setGoalUsd(Math.max(0, Number(e.target.value) || 0))}
@@ -672,15 +674,18 @@ export function FarmConsole() {
                         </div>
                         <div className="mt-3 rounded-lg border border-border bg-background/40 px-3 py-2.5 font-mono text-[11px] leading-relaxed">
                           <span className="text-muted-foreground">Arredondado · </span>
-                          <span className="font-semibold text-primary">{neededForGoal} contas</span>
+                          <span className="font-semibold text-primary">
+                            {neededForGoal} {neededForGoal === 1 ? "conta" : "contas"}
+                          </span>
                           <span className="text-muted-foreground"> = </span>
                           <span className="font-semibold text-primary">
-                            ${(neededForGoal * PER_ACCOUNT).toLocaleString("pt-BR")}
+                            ${(neededForGoal * MAX_PER_ACCOUNT).toLocaleString("pt-BR")}
                           </span>
-                          {neededForGoal > available + usedCount && (
+                          {missingAccounts > 0 && (
                             <span className="text-destructive">
                               {" "}
-                              · faltam {neededForGoal - (available + usedCount)}
+                              · faltam {missingAccounts}{" "}
+                              {missingAccounts === 1 ? "conta" : "contas"}
                             </span>
                           )}
                         </div>

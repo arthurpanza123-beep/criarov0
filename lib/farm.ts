@@ -51,6 +51,9 @@ export function serializeAccounts(accounts: Account[]): string {
 }
 
 export const MAX_INVITES = 40
+// Ganho por email/convite e teto por conta
+export const PER_INVITE = 5
+export const MAX_PER_ACCOUNT = MAX_INVITES * PER_INVITE // $200
 
 export const FARM_STEPS = [
   "Autenticando conta",
