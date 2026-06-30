@@ -36,7 +36,6 @@ import {
   FARM_STEPS,
   MAX_INVITES,
   PER_INVITE,
-  MAX_PER_ACCOUNT,
 } from "@/lib/farm"
 
 type FarmState = "idle" | "running" | "paused" | "done"
@@ -77,16 +76,16 @@ export function FarmConsole() {
   }, [accounts])
 
   const available = accounts.length
-  // Cada conta farmada rende até $200 (40 convites × $5)
-  const earnings = usedCount * MAX_PER_ACCOUNT
+  // Cada conta farmada rende $5
+  const earnings = usedCount * PER_INVITE
 
-  // Meta: arredonda SEMPRE para cima o nº de CONTAS necessárias ($200/conta)
-  const neededForGoal = Math.ceil(goalUsd / MAX_PER_ACCOUNT)
+  // Meta: arredonda SEMPRE para cima o nº de CONTAS necessárias ($5/conta)
+  const neededForGoal = Math.ceil(goalUsd / PER_INVITE)
   // Capacidade total considerando contas já usadas + disponíveis
   const capacityAccounts = available + usedCount
   const missingAccounts =
     mode === "goal" ? Math.max(0, neededForGoal - capacityAccounts) : 0
-  const missingUsd = missingAccounts * MAX_PER_ACCOUNT
+  const missingUsd = missingAccounts * PER_INVITE
 
   const overall =
     mode === "goal"
@@ -338,11 +337,9 @@ export function FarmConsole() {
                   </div>
 
                   {/* Leituras de dados */}
-                  <div className="grid shrink-0 grid-cols-4 divide-x divide-border border-y border-border">
+                  <div className="grid shrink-0 grid-cols-2 divide-x divide-border border-y border-border">
                     <Readout label="Disponíveis" value={available} accent />
                     <Readout label="Usadas" value={usedCount} />
-                    <Readout label="$/convite" value={PER_INVITE} prefix="$" />
-                    <Readout label="Máx/conta" value={MAX_PER_ACCOUNT} prefix="$" />
                   </div>
 
                   {/* Aviso: meta maior que a capacidade das contas */}
@@ -653,7 +650,7 @@ export function FarmConsole() {
                           </span>
                           <span className="text-muted-foreground"> = </span>
                           <span className="font-semibold text-primary">
-                            ${(neededForGoal * MAX_PER_ACCOUNT).toLocaleString("pt-BR")}
+                            ${(neededForGoal * PER_INVITE).toLocaleString("pt-BR")}
                           </span>
                           {missingAccounts > 0 && (
                             <span className="text-destructive">
