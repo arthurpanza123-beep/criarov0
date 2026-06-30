@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react"
 import Image from "next/image"
-import { Button } from "@/components/ui/button"
+import { Circle } from "lucide-react"
 
 export function Navbar() {
   return (
@@ -13,32 +13,31 @@ export function Navbar() {
       className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl"
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <a href="#" className="flex items-center gap-2.5">
-          <Image
-            src="/credit-farm-logo.png"
-            alt="Credit Farm"
-            width={200}
-            height={200}
-            className="h-11 w-auto object-contain object-left invert"
-            priority
-          />
-        </a>
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 ring-glow">
+            <Image
+              src="/credit-farm-icon.png"
+              alt="Credit Farm"
+              width={64}
+              height={64}
+              className="h-8 w-8 object-contain"
+              priority
+            />
+          </div>
+          <div className="leading-none">
+            <span className="block text-base font-bold tracking-tight">
+              Credit <span className="text-primary">Farm</span>
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              Automação de farm
+            </span>
+          </div>
+        </div>
 
-        <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-          <a href="#recursos" className="transition-colors hover:text-foreground">
-            Recursos
-          </a>
-          <a href="#console" className="transition-colors hover:text-foreground">
-            Console
-          </a>
-          <a href="#contas" className="transition-colors hover:text-foreground">
-            Contas
-          </a>
-        </nav>
-
-        <Button asChild size="sm" className="ring-glow">
-          <a href="#console">Abrir Console</a>
-        </Button>
+        <div className="flex items-center gap-2 rounded-full border border-border/60 bg-secondary/40 px-3 py-1.5 text-xs text-muted-foreground">
+          <Circle className="size-2.5 fill-primary text-primary" />
+          Worker online
+        </div>
       </div>
     </motion.header>
   )

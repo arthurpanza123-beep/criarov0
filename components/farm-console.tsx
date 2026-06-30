@@ -144,12 +144,19 @@ export function FarmConsole() {
   }
 
   return (
-    <section id="console" className="relative mx-auto max-w-6xl scroll-mt-20 px-4 py-24">
-      <div className="mx-auto mb-12 max-w-2xl text-center">
-        <h2 className="text-balance text-4xl font-bold tracking-tight md:text-5xl">
+    <section id="console" className="relative mx-auto max-w-6xl scroll-mt-20 px-4 py-8 md:py-10">
+      <div className="mb-8 flex flex-col gap-1 border-b border-border/60 pb-6">
+        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary">
+          <span className="relative flex size-2">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex size-2 rounded-full bg-primary" />
+          </span>
+          Painel de automação
+        </div>
+        <h1 className="text-balance text-2xl font-bold tracking-tight md:text-3xl">
           Console de <span className="text-primary">Farm</span>
-        </h2>
-        <p className="mt-4 text-muted-foreground">
+        </h1>
+        <p className="text-sm text-muted-foreground">
           Configure seus ganhos, defina uma meta e controle a automação ao vivo.
         </p>
       </div>
