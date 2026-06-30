@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { X, Coins, Link2, ArrowRight, ArrowLeft, Rocket } from "lucide-react"
+import { X, Coins, Link2, ArrowRight, ArrowLeft, Rocket, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { MAX_INVITES } from "@/lib/farm"
 
 const TOKENS_PER_LINK = 200
 
@@ -54,7 +55,12 @@ export function StartFarmDialog({
   if (!open) return null
 
   const filledLinks = links.filter((l) => l.trim()).length
-  const canConfirm = filledLinks === requiredLinks
+  // Capacidade: cada conta cobre MAX_INVITES tokens
+  const overCapacity = tokens > maxTokens
+  const missingTokens = Math.max(0, tokens - maxTokens)
+  const missingAccounts = Math.ceil(missingTokens / MAX_INVITES)
+  const canContinue = tokens > 0 && !overCapacity
+  const canConfirm = canContinue && filledLinks === requiredLinks
 
   function confirm() {
     if (!canConfirm) return
@@ -127,34 +133,67 @@ export function StartFarmDialog({
                   autoFocus
                   value={tokens}
                   onChange={(e) => setTokens(Math.max(0, Number(e.target.value) || 0))}
-                  className="w-full rounded-lg border border-input bg-background/60 px-3 py-3 font-mono text-lg outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
+                  className={`w-full rounded-lg border bg-background/60 px-3 py-3 font-mono text-lg outline-none transition-colors focus:ring-2 ${
+                    overCapacity
+                      ? "border-destructive/60 focus:border-destructive focus:ring-destructive/30"
+                      : "border-input focus:border-primary focus:ring-primary/30"
+                  }`}
                 />
-                <div className="mt-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs">
-                  <Link2 className="size-3.5 shrink-0 text-primary" />
+
+                {/* Capacidade disponível */}
+                <div className="mt-2 flex items-center justify-between font-mono text-[11px]">
                   <span className="text-muted-foreground">
-                    {tokens <= TOKENS_PER_LINK ? (
-                      <>
-                        Pedido de{" "}
-                        <span className="font-mono font-semibold text-primary">{tokens}</span>{" "}
-                        tokens — será pedido{" "}
-                        <span className="font-semibold text-primary">1 link de convite</span>.
-                      </>
-                    ) : (
-                      <>
-                        Acima de {TOKENS_PER_LINK} tokens — serão pedidos{" "}
-                        <span className="font-mono font-semibold text-primary">
-                          {requiredLinks} links de convite
-                        </span>{" "}
-                        (1 a cada {TOKENS_PER_LINK}).
-                      </>
-                    )}
+                    Capacidade: {maxTokens} tokens
+                  </span>
+                  <span className="text-muted-foreground">
+                    {Math.ceil(maxTokens / MAX_INVITES)} contas · {MAX_INVITES}/conta
                   </span>
                 </div>
+
+                {overCapacity ? (
+                  <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs">
+                    <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-destructive" />
+                    <span className="leading-relaxed text-foreground/80">
+                      Você não tem contas suficientes. Faltam{" "}
+                      <span className="font-mono font-semibold text-destructive">
+                        {missingTokens} tokens
+                      </span>{" "}
+                      —{" "}
+                      <span className="font-semibold text-destructive">
+                        +{missingAccounts} conta{missingAccounts > 1 ? "s" : ""}
+                      </span>
+                      . Adicione mais contas ou reduza o pedido para no máximo{" "}
+                      <span className="font-mono font-semibold">{maxTokens}</span>.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="mt-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs">
+                    <Link2 className="size-3.5 shrink-0 text-primary" />
+                    <span className="text-muted-foreground">
+                      {tokens <= TOKENS_PER_LINK ? (
+                        <>
+                          Pedido de{" "}
+                          <span className="font-mono font-semibold text-primary">{tokens}</span>{" "}
+                          tokens — será pedido{" "}
+                          <span className="font-semibold text-primary">1 link de convite</span>.
+                        </>
+                      ) : (
+                        <>
+                          Acima de {TOKENS_PER_LINK} tokens — serão pedidos{" "}
+                          <span className="font-mono font-semibold text-primary">
+                            {requiredLinks} links de convite
+                          </span>{" "}
+                          (1 a cada {TOKENS_PER_LINK}).
+                        </>
+                      )}
+                    </span>
+                  </div>
+                )}
 
                 <Button
                   className="mt-6 w-full"
                   size="lg"
-                  disabled={tokens <= 0}
+                  disabled={!canContinue}
                   onClick={() => setStep(2)}
                 >
                   Continuar
