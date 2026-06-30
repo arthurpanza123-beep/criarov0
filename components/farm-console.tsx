@@ -191,7 +191,7 @@ export function FarmConsole() {
       {/* Painel-terminal emoldurado */}
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card/40 shadow-[0_30px_80px_-40px_oklch(0_0_0_/_0.9)] backdrop-blur-xl">
         {/* Barra de título */}
-        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border bg-background/30 px-4 py-3">
+        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border bg-background/30 px-6 py-4">
           <div className="flex items-center gap-2.5 rounded-full border border-border bg-background/50 px-3 py-1.5">
             <span className="relative flex size-2">
               {state === "running" && (
@@ -352,9 +352,9 @@ export function FarmConsole() {
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden px-4"
+                        className="overflow-hidden px-6"
                       >
-                        <div className="flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5">
+                        <div className="flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3">
                           <Target className="mt-0.5 size-3.5 shrink-0 text-destructive" />
                           <p className="font-mono text-[11px] leading-relaxed text-foreground/80">
                             Faltam{" "}
@@ -371,7 +371,7 @@ export function FarmConsole() {
                   </AnimatePresence>
 
                   {/* Controles */}
-                  <div className="flex shrink-0 gap-2 p-4">
+                  <div className="flex shrink-0 gap-2.5 p-6">
                     {state !== "running" ? (
                       <Button
                         onClick={start}
@@ -397,7 +397,7 @@ export function FarmConsole() {
 
                 {/* Coluna direita: log ao vivo */}
                 <div className="flex min-h-0 flex-col bg-card/30">
-                  <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
+                  <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-6 py-4">
                     <div className="flex items-center gap-2">
                       <Activity className="size-3.5 text-primary" />
                       <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -425,7 +425,7 @@ export function FarmConsole() {
                           initial={{ opacity: 0, y: -8 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0 }}
-                          className="sticky top-0 z-10 overflow-hidden border-b border-primary/30 bg-primary/[0.07] p-4 backdrop-blur-sm"
+                          className="sticky top-0 z-10 overflow-hidden border-b border-primary/30 bg-primary/[0.07] px-6 py-4 backdrop-blur-sm"
                         >
                           <motion.div
                             className="pointer-events-none absolute inset-y-0 left-0 bg-primary/10"
@@ -516,7 +516,7 @@ export function FarmConsole() {
                               layout
                               initial={{ opacity: 0, x: -10, height: 0 }}
                               animate={{ opacity: 1, x: 0, height: "auto" }}
-                              className="flex items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-primary/[0.04]"
+                              className="flex items-center gap-3 px-6 py-3 transition-colors hover:bg-primary/[0.04]"
                             >
                               <CheckCircle2 className="size-3.5 shrink-0 text-primary" />
                               <span className="font-mono text-[10px] tabular-nums text-muted-foreground/70">
@@ -722,7 +722,7 @@ function Readout({
   accent?: boolean
 }) {
   return (
-    <div className="flex flex-col gap-1 px-4 py-3.5">
+    <div className="flex flex-col gap-1.5 px-5 py-4">
       <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
@@ -750,7 +750,7 @@ function SettingsPanel({
 }) {
   return (
     <div className="flex min-h-0 flex-col bg-card/30">
-      <div className="flex shrink-0 items-center gap-2.5 border-b border-border px-4 py-3">
+      <div className="flex shrink-0 items-center gap-2.5 border-b border-border px-6 py-4">
         <div className="flex size-8 items-center justify-center rounded-lg border border-border bg-background/50">
           <Icon className="size-4 text-primary" />
         </div>
@@ -761,7 +761,7 @@ function SettingsPanel({
           </span>
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col gap-3.5 p-6">{children}</div>
     </div>
   )
 }
