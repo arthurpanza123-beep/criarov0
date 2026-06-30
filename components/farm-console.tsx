@@ -82,6 +82,11 @@ export function FarmConsole() {
 
   // Meta: arredonda SEMPRE para cima o nº de contas necessárias
   const neededForGoal = Math.ceil(goalUsd / PER_ACCOUNT)
+  // Capacidade total considerando contas já usadas + disponíveis
+  const capacityAccounts = available + usedCount
+  const missingAccounts =
+    mode === "goal" ? Math.max(0, neededForGoal - capacityAccounts) : 0
+  const missingUsd = missingAccounts * PER_ACCOUNT
 
   const overall =
     mode === "goal"
@@ -161,6 +166,8 @@ export function FarmConsole() {
   function pause() {
     setState("paused")
   }
+  // Reset limpa apenas o estado/contadores da sessão.
+  // NÃO restaura contas já farmadas — elas já foram convidadas e saem para sempre.
   function reset() {
     if (timerRef.current) clearInterval(timerRef.current)
     progressRef.current = 0
@@ -168,7 +175,6 @@ export function FarmConsole() {
     setUsedCount(0)
     setActiveEmail(null)
     setFeed([])
-    setAccounts(parseAccounts(rawAccounts))
     setState("idle")
   }
 
@@ -189,13 +195,14 @@ export function FarmConsole() {
         {/* Barra de título */}
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border bg-background/30 px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background/60">
+            <div className="relative shrink-0">
+              <div className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-primary/20 blur-lg" />
               <Image
                 src="/credit-farm-mascot.png"
                 alt="Credit Farm"
                 width={96}
                 height={96}
-                className="h-8 w-8 object-contain"
+                className="h-9 w-9 object-contain drop-shadow-[0_2px_6px_oklch(0_0_0_/_0.5)]"
                 priority
               />
             </div>
@@ -282,55 +289,73 @@ export function FarmConsole() {
                       <FarmCore state={state} progress={coreProgress} size={172} />
                     </div>
 
-                    <div className="relative mt-4 text-center">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                        Ganhos · $5 / conta
-                      </span>
-                      <AnimatedNumber
-                        value={earnings}
-                        prefix="$"
-                        decimals={0}
-                        className="mt-1 block font-mono text-5xl font-bold tabular-nums text-primary text-glow"
-                      />
+                    {/* Centro: mínimo quando ocioso, ganhos/processo após iniciar */}
+                    <div className="relative mt-4 flex w-full max-w-[280px] flex-col items-center">
                       <AnimatePresence mode="wait">
-                        <motion.p
-                          key={state + (activeEmail ?? "")}
-                          initial={{ opacity: 0, y: 4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          className="mt-1.5 h-4 font-mono text-[11px] text-muted-foreground"
-                        >
-                          {state === "idle" && `${available} contas prontas`}
-                          {state === "running" && activeEmail && (
-                            <span className="text-primary">{maskEmail(activeEmail)}</span>
-                          )}
-                          {state === "paused" && "Aguardando retomada"}
-                          {state === "done" && (
-                            <span className="text-primary">
-                              {usedCount} contas concluídas
-                            </span>
-                          )}
-                        </motion.p>
-                      </AnimatePresence>
-                    </div>
+                        {state === "idle" ? (
+                          <motion.p
+                            key="idle"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground"
+                          >
+                            Pronto para iniciar
+                          </motion.p>
+                        ) : (
+                          <motion.div
+                            key="active"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="flex w-full flex-col items-center"
+                          >
+                            <AnimatedNumber
+                              value={earnings}
+                              prefix="$"
+                              decimals={0}
+                              className="block font-mono text-5xl font-bold tabular-nums text-primary text-glow"
+                            />
+                            <AnimatePresence mode="wait">
+                              <motion.p
+                                key={state + activeStep.label}
+                                initial={{ opacity: 0, y: 4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -4 }}
+                                className="mt-1.5 h-4 font-mono text-[11px] text-muted-foreground"
+                              >
+                                {state === "running" && (
+                                  <span className="text-primary">{activeStep.label}</span>
+                                )}
+                                {state === "paused" && "Aguardando retomada"}
+                                {state === "done" && (
+                                  <span className="text-primary">
+                                    {usedCount} contas concluídas
+                                  </span>
+                                )}
+                              </motion.p>
+                            </AnimatePresence>
 
-                    {/* Barra de progresso global */}
-                    <div className="relative mt-4 w-full max-w-[280px]">
-                      <div className="mb-1.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider">
-                        <span className="text-muted-foreground">
-                          {mode === "goal"
-                            ? `${usedCount}/${neededForGoal} · meta $${goalUsd}`
-                            : `${usedCount} farmadas`}
-                        </span>
-                        <span className="font-semibold text-primary">{overall}%</span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                        <motion.div
-                          className="h-full rounded-full bg-primary glow-sm"
-                          animate={{ width: `${overall}%` }}
-                          transition={{ duration: 0.4, ease: "easeOut" }}
-                        />
-                      </div>
+                            <div className="mt-3 w-full">
+                              <div className="mb-1.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider">
+                                <span className="text-muted-foreground">
+                                  {mode === "goal"
+                                    ? `${usedCount}/${neededForGoal} · meta $${goalUsd}`
+                                    : `${usedCount} farmadas`}
+                                </span>
+                                <span className="font-semibold text-primary">{overall}%</span>
+                              </div>
+                              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                                <motion.div
+                                  className="h-full rounded-full bg-primary glow-sm"
+                                  animate={{ width: `${overall}%` }}
+                                  transition={{ duration: 0.4, ease: "easeOut" }}
+                                />
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
 
@@ -340,6 +365,31 @@ export function FarmConsole() {
                     <Readout label="Usadas" value={usedCount} />
                     <Readout label="Por conta" value={PER_ACCOUNT} prefix="$" />
                   </div>
+
+                  {/* Aviso: meta maior que a capacidade das contas */}
+                  <AnimatePresence initial={false}>
+                    {mode === "goal" && missingAccounts > 0 && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden px-4"
+                      >
+                        <div className="flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5">
+                          <Target className="mt-0.5 size-3.5 shrink-0 text-destructive" />
+                          <p className="font-mono text-[11px] leading-relaxed text-foreground/80">
+                            Faltam{" "}
+                            <span className="font-semibold text-destructive">
+                              {missingAccounts} contas
+                            </span>{" "}
+                            (${missingUsd}) para a meta de{" "}
+                            <span className="font-semibold">${goalUsd}</span>. Adicione mais
+                            contas ou reduza a meta.
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Controles */}
                   <div className="flex shrink-0 gap-2 p-4">
