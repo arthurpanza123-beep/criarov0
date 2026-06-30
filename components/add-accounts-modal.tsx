@@ -118,12 +118,30 @@ export function AddAccountsModal({
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  (e.metaKey || e.ctrlKey) &&
+                  !e.nativeEvent.isComposing &&
+                  e.keyCode !== 229
+                ) {
+                  e.preventDefault()
+                  confirm()
+                }
+              }}
               rows={9}
               spellCheck={false}
               autoFocus
               placeholder={"email@dominio.com > senha\noutro@dominio.com > senha"}
               className="w-full resize-none rounded-lg border border-input bg-background/60 p-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
             />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Pressione{" "}
+              <kbd className="rounded border border-border bg-secondary px-1 font-mono">
+                Ctrl/Cmd + Enter
+              </kbd>{" "}
+              para adicionar
+            </p>
 
             <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               <CheckCircle2 className="size-3.5 text-primary" />

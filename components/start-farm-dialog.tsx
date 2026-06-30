@@ -67,6 +67,17 @@ export function StartFarmDialog({
     onConfirm({ tokens, inviteLinks: links.map((l) => l.trim()) })
   }
 
+  // Enter confirma/avança (ignora durante composição de IME)
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key !== "Enter" || e.nativeEvent.isComposing || e.keyCode === 229) return
+    e.preventDefault()
+    if (step === 1) {
+      if (canContinue) setStep(2)
+    } else if (canConfirm) {
+      confirm()
+    }
+  }
+
   return (
     <AnimatePresence>
       <motion.div
@@ -86,6 +97,7 @@ export function StartFarmDialog({
           exit={{ opacity: 0, scale: 0.95, y: 12 }}
           transition={{ type: "spring", stiffness: 300, damping: 28 }}
           className="relative w-full max-w-md overflow-hidden rounded-2xl border border-primary/30 bg-card p-6 shadow-2xl ring-glow"
+          onKeyDown={handleKeyDown}
         >
           {/* Topo */}
           <div className="mb-5 flex items-center justify-between">
