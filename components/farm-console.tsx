@@ -19,16 +19,21 @@ import {
   CheckCircle2,
   Loader2,
   Activity,
+  Users,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AnimatedNumber } from "@/components/animated-number"
 import { FarmCore } from "@/components/farm-core"
 import { AddAccountsModal } from "@/components/add-accounts-modal"
+import { StartFarmDialog, type StartConfig } from "@/components/start-farm-dialog"
 import {
   type Account,
   DEFAULT_ACCOUNTS_RAW,
   parseAccounts,
   maskEmail,
+  getFarmStep,
+  FARM_STEPS,
+  MAX_INVITES,
 } from "@/lib/farm"
 
 type FarmState = "idle" | "running" | "paused" | "done"
@@ -50,6 +55,8 @@ export function FarmConsole() {
   const [curProgress, setCurProgress] = useState(0)
   const [feed, setFeed] = useState<FeedItem[]>([])
   const [modalOpen, setModalOpen] = useState(false)
+  const [startOpen, setStartOpen] = useState(false)
+  const [config, setConfig] = useState<StartConfig | null>(null)
 
   // Meta de ganhos (valor por conta é fixo: $5)
   const [mode, setMode] = useState<FarmMode>("all")
@@ -120,9 +127,20 @@ export function FarmConsole() {
 
   const coreProgress = state === "done" ? 100 : curProgress
   const locked = state === "running" || state === "paused"
+  const activeStep = getFarmStep(curProgress)
 
   function start() {
     if (available === 0) return
+    // Retomar de uma pausa não pede config de novo
+    if (state === "paused") {
+      setState("running")
+      return
+    }
+    setStartOpen(true)
+  }
+  function confirmStart(cfg: StartConfig) {
+    setConfig(cfg)
+    setStartOpen(false)
     setState("running")
   }
   function pause() {
@@ -410,20 +428,58 @@ export function FarmConsole() {
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="relative flex items-center gap-3 overflow-hidden rounded-lg border border-primary/40 bg-primary/10 px-3 py-2.5"
+                  className="relative overflow-hidden rounded-lg border border-primary/40 bg-primary/10 p-3"
                 >
                   <motion.div
                     className="pointer-events-none absolute inset-y-0 left-0 bg-primary/15"
                     animate={{ width: `${curProgress}%` }}
                     transition={{ duration: 0.2, ease: "linear" }}
                   />
-                  <Loader2 className="relative size-4 shrink-0 animate-spin text-primary" />
-                  <span className="relative flex-1 truncate font-mono text-xs font-medium text-primary">
-                    {maskEmail(activeEmail)}
-                  </span>
-                  <span className="relative font-mono text-[11px] font-semibold text-primary">
-                    {Math.round(curProgress)}%
-                  </span>
+                  <div className="relative flex items-center gap-3">
+                    <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
+                    <span className="flex-1 truncate font-mono text-xs font-medium text-primary">
+                      {maskEmail(activeEmail)}
+                    </span>
+                    <span className="font-mono text-[11px] font-semibold text-primary">
+                      {Math.round(curProgress)}%
+                    </span>
+                  </div>
+
+                  {/* Etapa atual */}
+                  <div className="relative mt-2 flex items-center justify-between gap-2">
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={activeStep.label}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        className="flex items-center gap-1.5 text-[11px] font-medium text-foreground/80"
+                      >
+                        <span className="flex size-4 items-center justify-center rounded-full bg-primary/20 font-mono text-[9px] text-primary">
+                          {activeStep.index + 1}
+                        </span>
+                        {activeStep.label}
+                      </motion.span>
+                    </AnimatePresence>
+                    {activeStep.index === 2 && (
+                      <span className="flex items-center gap-1 font-mono text-[11px] text-primary">
+                        <Users className="size-3" />
+                        {activeStep.invites}/{MAX_INVITES}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Trilha de etapas */}
+                  <div className="relative mt-2 flex gap-1">
+                    {FARM_STEPS.map((_, i) => (
+                      <span
+                        key={i}
+                        className={`h-1 flex-1 rounded-full transition-colors ${
+                          i <= activeStep.index ? "bg-primary" : "bg-muted"
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -466,6 +522,13 @@ export function FarmConsole() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onAdd={addAccounts}
+      />
+
+      <StartFarmDialog
+        open={startOpen}
+        maxTokens={available * MAX_INVITES}
+        onClose={() => setStartOpen(false)}
+        onConfirm={confirmStart}
       />
     </section>
   )

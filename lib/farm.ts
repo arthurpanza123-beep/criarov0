@@ -50,6 +50,38 @@ export function serializeAccounts(accounts: Account[]): string {
   return accounts.map((a) => `${a.email} > ${a.password}`).join("\n")
 }
 
+export const MAX_INVITES = 40
+
+export const FARM_STEPS = [
+  "Autenticando conta",
+  "Aplicando link de convite",
+  "Convidando usuários",
+  "Confirmando recompensa",
+] as const
+
+// Mapeia o progresso (0-100) de uma conta para a etapa atual + nº de convites
+export function getFarmStep(progress: number): {
+  index: number
+  label: string
+  invites: number
+} {
+  let index: number
+  if (progress < 20) index = 0
+  else if (progress < 45) index = 1
+  else if (progress < 90) index = 2
+  else index = 3
+
+  // durante "Convidando usuários" (45-90) o contador sobe até 40
+  let invites = 0
+  if (progress >= 45) {
+    const ratio = Math.min(1, (progress - 45) / (90 - 45))
+    invites = Math.min(MAX_INVITES, Math.round(ratio * MAX_INVITES))
+  }
+  if (progress >= 90) invites = MAX_INVITES
+
+  return { index, label: FARM_STEPS[index], invites }
+}
+
 export function maskEmail(email: string) {
   const [user, domain] = email.split("@")
   if (!user || !domain) return email
