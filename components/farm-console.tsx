@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import Image from "next/image"
 import { motion, AnimatePresence } from "motion/react"
 import {
   Play,
@@ -191,47 +190,22 @@ export function FarmConsole() {
     <section className="mx-auto flex h-dvh w-full max-w-[1680px] flex-col p-3 md:p-4">
       {/* Painel-terminal emoldurado */}
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card/40 shadow-[0_30px_80px_-40px_oklch(0_0_0_/_0.9)] backdrop-blur-xl">
-        <CornerTicks />
-
         {/* Barra de título */}
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border bg-background/30 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-b from-primary/15 to-transparent">
-              <div className="pointer-events-none absolute inset-0 -z-10 bg-primary/20 blur-md" />
-              <Image
-                src="/credit-farm-mascot.png"
-                alt="Credit Farm"
-                width={96}
-                height={96}
-                className="h-9 w-9 object-contain drop-shadow-[0_2px_6px_oklch(0_0_0_/_0.6)]"
-                priority
+          <div className="flex items-center gap-2.5 rounded-full border border-border bg-background/50 px-3 py-1.5">
+            <span className="relative flex size-2">
+              {state === "running" && (
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
+              )}
+              <span
+                className={`relative inline-flex size-2 rounded-full ${
+                  state === "running" || state === "done" ? "bg-primary" : "bg-muted-foreground/50"
+                }`}
               />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-[17px] font-bold leading-none tracking-tight">
-                Credit <span className="text-primary">Farm</span>
-              </h1>
-              <span className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Automation Terminal
-              </span>
-            </div>
-
-            {/* Status */}
-            <div className="ml-2 hidden items-center gap-2 rounded-full border border-border bg-background/50 px-2.5 py-1 sm:flex">
-              <span className="relative flex size-1.5">
-                {state === "running" && (
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
-                )}
-                <span
-                  className={`relative inline-flex size-1.5 rounded-full ${
-                    state === "running" || state === "done" ? "bg-primary" : "bg-muted-foreground/50"
-                  }`}
-                />
-              </span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-                {statusLabel}
-              </span>
-            </div>
+            </span>
+            <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              {statusLabel}
+            </span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -732,18 +706,6 @@ function InviteDots({ count, total }: { count: number; total: number }) {
           />
         )
       })}
-    </div>
-  )
-}
-
-function CornerTicks() {
-  const base = "absolute size-3 border-primary/40"
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 z-20">
-      <span className={`${base} left-2 top-2 border-l border-t`} />
-      <span className={`${base} right-2 top-2 border-r border-t`} />
-      <span className={`${base} bottom-2 left-2 border-b border-l`} />
-      <span className={`${base} bottom-2 right-2 border-b border-r`} />
     </div>
   )
 }
