@@ -4,7 +4,7 @@ export type UserRole = (typeof USER_ROLES)[number]
 export const MANAGED_ACCOUNT_STATUSES = [
   "active",
   "inactive",
-  "limited",
+  "suspended",
   "archived",
 ] as const
 export type ManagedAccountStatus = (typeof MANAGED_ACCOUNT_STATUSES)[number]
@@ -76,7 +76,7 @@ export type CreditLedgerType = (typeof CREDIT_LEDGER_TYPES)[number]
 export const CREDIT_LEDGER_STATUSES = [
   "pending",
   "confirmed",
-  "void",
+  "cancelled",
 ] as const
 export type CreditLedgerStatus = (typeof CREDIT_LEDGER_STATUSES)[number]
 
@@ -106,10 +106,12 @@ export type Customer = {
 
 export const ORDER_STATUSES = [
   "draft",
-  "pending",
+  "pending_payment",
   "paid",
+  "processing",
   "delivered",
   "cancelled",
+  "refunded",
 ] as const
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
