@@ -1,4 +1,5 @@
 export * from "./activities"
+export * from "./auth.generated"
 export * from "./campaigns"
 export * from "./credit-ledger"
 export * from "./customers"

@@ -58,6 +58,51 @@ corepack pnpm@9.15.9 db:seed
 corepack pnpm@9.15.9 db:seed
 ```
 
+## Auth
+
+Better Auth 1.6.23 usa o adapter oficial Drizzle e adiciona a migration:
+
+- `lib/db/migrations/0001_cuddly_ultimo.sql`
+
+Tabelas adicionadas:
+
+- `user`
+- `session`
+- `account`
+- `verification`
+- `rate_limit`
+
+Colunas principais em `user`:
+
+- `id uuid primary key`
+- `name`
+- `email unique`
+- `email_verified`
+- `image`
+- `role`
+- `banned`
+- `ban_reason`
+- `ban_expires`
+- `must_change_password`
+- `created_at`
+- `updated_at`
+
+Relações:
+
+- `session.user_id -> user.id ON DELETE CASCADE`
+- `account.user_id -> user.id ON DELETE CASCADE`
+- `activities.actor_user_id -> user.id ON DELETE SET NULL`
+
+O banco principal e o banco de teste possuem 14 tabelas públicas após a Fase 4.
+
+Bootstrap do owner:
+
+```bash
+corepack pnpm@9.15.9 auth:bootstrap-owner
+```
+
+O script é idempotente, cria somente quando ainda não existe owner, usa API server-side do Better Auth para criar credencial e não imprime senha. Após criar o owner em produção, as variáveis `INITIAL_OWNER_*` podem ser removidas do ambiente.
+
 ## Verificação
 
 Verificar tabelas:

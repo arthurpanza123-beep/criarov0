@@ -2,17 +2,16 @@
 
 ## Estado atual
 
-Fase 3 — PostgreSQL exclusivo, Drizzle ORM, migrations e persistência base implementada na branch `feat/postgres-drizzle-foundation`.
+Fase 4 — Better Auth, login, sessão persistente e RBAC implementada na branch `feat/auth-rbac`.
 
-O projeto agora possui banco PostgreSQL real, schema Drizzle, migration SQL versionada, seed idempotente, repositories, services, health check de banco e testes de integração.
+O painel possui autenticação interna por e-mail e senha, owner inicial, troca obrigatória da senha inicial, RBAC server-side, Proxy com redirecionamentos rápidos, logout e administração básica de usuários owner-only.
 
-Não foram implementados Better Auth, login, sessão, owner inicial, PM2, Nginx, domínio ou deploy definitivo.
+Não foram implementados login social, recuperação de senha por e-mail, SMTP, PM2, Nginx, domínio ou deploy definitivo.
 
 ## Último commit
 
-- Commit base da Fase 2: `664f21f chore: establish secure backend foundation`.
-- Commit da Fase 3: `feat: add postgres and drizzle persistence foundation`.
-- Hash atual: consultar com `git log -1 --oneline`.
+- Commit base da Fase 3: `22726b4 feat: add postgres and drizzle persistence foundation`.
+- Commit da Fase 4: `feat: add secure authentication and rbac`.
 
 ## Banco usado
 
@@ -24,13 +23,14 @@ Não foram implementados Better Auth, login, sessão, owner inicial, PM2, Nginx,
 
 Credenciais ficam somente em `.env.local`. Não versionar nem imprimir `DATABASE_URL`.
 
-## Migration
+## Migrations
 
 - `lib/db/migrations/0000_stiff_firebird.sql`
+- `lib/db/migrations/0001_cuddly_ultimo.sql`
 
-## Tabelas criadas
+## Tabelas atuais
 
-9 tabelas de domínio:
+14 tabelas públicas:
 
 - `managed_accounts`
 - `campaigns`
@@ -41,21 +41,42 @@ Credenciais ficam somente em `.env.local`. Não versionar nem imprimir `DATABASE
 - `activities`
 - `notifications`
 - `settings`
+- `user`
+- `session`
+- `account`
+- `verification`
+- `rate_limit`
 
 Também existe a tabela de controle do Drizzle no schema `drizzle`.
 
-## O que funciona
+## Better Auth
 
-- Migrations aplicadas em `criarov0_test`.
-- Testes de integração passam contra `criarov0_test`.
-- Migrations aplicadas em `criarov0`.
-- Seed seguro executado duas vezes sem duplicar settings.
-- `GET /api/health/database` retorna status genérico do banco sem expor host, usuário, senha ou database URL.
+- Versão: `1.6.23`.
+- Adapter: `better-auth/adapters/drizzle`.
+- Handler: `app/api/auth/[...all]/route.ts`.
+- Cadastro público: desabilitado.
+- Login social: não implementado.
+- Bloqueio de usuário: campo oficial `banned` do plugin Admin.
+- Campo adicional: `user.must_change_password`.
 
-## Comandos de validação
+## Rotas criadas
+
+- `/login`
+- `/alterar-senha`
+- `/usuarios`
+- `/api/auth/[...all]`
+
+## Owner
+
+Owner inicial criado de forma idempotente no banco principal. O relatório e os logs mostram apenas e-mail mascarado; senha não foi exibida.
+
+As variáveis `INITIAL_OWNER_*` podem ser removidas do ambiente de produção depois de confirmar o primeiro acesso e a troca de senha.
+
+## Testes
+
+Validações executadas na Fase 4:
 
 ```bash
-cd "/home/panza/v0 farmar"
 corepack pnpm@9.15.9 typecheck
 corepack pnpm@9.15.9 lint
 corepack pnpm@9.15.9 test
@@ -63,6 +84,10 @@ corepack pnpm@9.15.9 test:integration
 corepack pnpm@9.15.9 build
 corepack pnpm@9.15.9 db:check
 ```
+
+Testes unitários cobrem matriz RBAC, senha forte, papel, callback URL, último owner, autobloqueio e `mustChangePassword`.
+
+Testes de integração usam exclusivamente `criarov0_test` e cobrem migration de auth, bootstrap idempotente, login, login incorreto, cadastro público bloqueado, sessão, logout, troca obrigatória, senha alterada, usuário bloqueado, owner criando usuário, viewer sem mutation, FK de activities e ausência de hash em resposta user-facing.
 
 ## PM2
 
@@ -74,20 +99,6 @@ Nenhum Nginx ou domínio foi configurado.
 
 DNS informado para fase futura: `v0.panzza.com.br`.
 
-## Problemas encontrados
-
-- A role `criarov0_app` foi criada sem superuser, sem `createdb` e sem `createrole`.
-- PostgreSQL 17/5433 já era o cluster usado por outros projetos; a Fase 3 não alterou sua configuração.
-- Testes de integração possuem proteção para recusar execução fora de `criarov0_test`.
-- `drizzle-kit push` não foi usado.
-
 ## Próximo passo exato
 
-Fase 4 — Better Auth, usuário owner, login, sessão e RBAC:
-
-1. Instalar e configurar Better Auth.
-2. Criar tabelas de autenticação via migrations.
-3. Criar seed owner seguro sem expor senha.
-4. Implementar login/logout e sessão persistente.
-5. Proteger server-side todas as rotas sensíveis.
-6. Implementar RBAC: owner, admin, operator e viewer.
+Fase 5 — conectar dashboard e CRUDs ao PostgreSQL real.

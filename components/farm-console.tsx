@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import {
@@ -25,6 +26,9 @@ import {
   KeySquare,
   MousePointerClick,
   Gift,
+  LogOut,
+  UserCircle,
+  Users,
   type LucideIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -61,12 +65,22 @@ type FarmState = "idle" | "running" | "paused" | "done"
 type FarmMode = "all" | "goal"
 type FeedItem = { id: string; email: string; t: string }
 type Tab = "queue" | "settings"
+type FarmConsoleUser = {
+  name: string
+  role: string
+}
 
 function nowTime() {
   return new Date().toLocaleTimeString("pt-BR", { hour12: false })
 }
 
-export function FarmConsole() {
+export function FarmConsole({
+  user,
+  logoutAction,
+}: {
+  user: FarmConsoleUser
+  logoutAction: () => void
+}) {
   const [tab, setTab] = useState<Tab>("queue")
   const [accounts, setAccounts] = useState<Account[]>(() =>
     parseAccounts(DEFAULT_ACCOUNTS_RAW),
@@ -266,6 +280,31 @@ export function FarmConsole() {
                 label="Config"
               />
             </div>
+            <div className="hidden items-center gap-2 rounded-lg border border-border bg-background/50 px-2.5 py-1.5 md:flex">
+              <UserCircle className="size-4 text-primary" />
+              <div className="min-w-0">
+                <p className="max-w-28 truncate text-xs font-medium leading-tight text-foreground">{user.name}</p>
+                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{user.role}</p>
+              </div>
+            </div>
+            {user.role === "owner" && (
+              <Link
+                href="/usuarios"
+                aria-label="Usuários"
+                className="flex size-8 items-center justify-center rounded-lg border border-border bg-background/50 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              >
+                <Users className="size-4" />
+              </Link>
+            )}
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                aria-label="Sair"
+                className="flex size-8 items-center justify-center rounded-lg border border-border bg-background/50 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              >
+                <LogOut className="size-4" />
+              </button>
+            </form>
           </div>
         </header>
 
