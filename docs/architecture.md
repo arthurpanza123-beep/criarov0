@@ -122,12 +122,32 @@ O sistema não automatiza cadastros em plataformas externas, CAPTCHA, OTP, links
 
 Testes unitários não dependem de banco. Testes de integração usam exclusivamente `criarov0_test` e possuem proteção que recusa execução se `TEST_DATABASE_URL` não apontar claramente para esse banco.
 
+## Fase 5 — dashboard e CRUDs
+
+O painel administrativo está conectado ao PostgreSQL real na branch `feat/dashboard-cruds`.
+Detalhes completos (rotas, páginas, repositories, services, Server Actions, matriz de permissões,
+filtros, paginação, transições, regras financeiras, ledger, reconciliação, notificações,
+configurações, testes e limitações) estão em `docs/dashboard-and-cruds.md`.
+
+Camadas adicionadas:
+
+- `lib/admin/`: utilidades do painel — `server-action.ts` (`runGuardedAction`/`guardedAction`),
+  `action-result.ts`, `form-schemas.ts` (Zod), `money.ts` (centavos em BigInt), `status.ts`
+  (transições e lucro), `pagination.ts`, `search-params.ts`, `normalize.ts`, `display.ts`,
+  `audit.ts` e `activity-metadata.ts` (sanitização de metadata).
+- `components/admin/`: `admin-shell.tsx` (sidebar, navegação por RBAC, badge de notificações,
+  logout) e `primitives.tsx` (tabela, paginação, filtros, estados vazios, badges).
+- `app/(dashboard)/`: grupo protegido com dashboard, contas, campanhas, indicações, clientes,
+  pedidos, créditos, atividades, notificações e configurações, cada um com `page.tsx` e
+  `actions.ts` quando há mutations, além de `error.tsx` (limite de erro sem stack trace).
+
+Nenhuma tabela nova foi criada nesta fase; nenhuma migration nova foi necessária.
+
 ## Ainda não implementado
 
-- CRUD público via App Router.
-- Painel conectado ao banco.
-- Filas reais.
-- Métricas persistentes.
-- recuperação de senha por e-mail/SMTP.
-- login social.
+- Feedback inline de erros por formulário (Server Actions usam progressive enhancement).
+- Job agendado de reconciliação (hoje é sob demanda).
+- E2E com Playwright (coberto por integração + smoke test).
+- Recuperação de senha por e-mail/SMTP.
+- Login social.
 - PM2, Nginx, domínio e deploy definitivo.

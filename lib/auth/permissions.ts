@@ -51,11 +51,11 @@ export const rbacRoles = {
     orders: actions,
     creditLedger: ["read", "create"],
     activities: ["read"],
-    settings: ["read"],
+    settings: ["read", "update"],
   }),
   operator: accessControl.newRole({
     dashboard: ["read"],
-    managedAccounts: ["read"],
+    managedAccounts: ["read", "update"],
     campaigns: ["read"],
     referrals: ["read", "create", "update"],
     customers: ["read"],

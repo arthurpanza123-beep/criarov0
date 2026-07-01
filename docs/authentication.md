@@ -89,6 +89,12 @@ Matriz resumida:
 
 A matriz tipada fica em `lib/auth/permissions.ts`.
 
+Na Fase 5, todas as páginas do painel chamam `requirePermission(resource, "read")` e todas as
+mutations passam por `guardedAction`/`requirePermission` no servidor antes de tocar em qualquer
+service. Consulte `docs/dashboard-and-cruds.md` para a matriz completa por recurso e ação. O grupo
+`app/(dashboard)/` tem um `error.tsx` que apresenta uma mensagem limpa (sem stack trace) caso um
+papel acesse diretamente uma página sem permissão.
+
 ## Guards
 
 Helpers server-side:

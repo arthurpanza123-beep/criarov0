@@ -95,6 +95,13 @@ Relações:
 
 O banco principal e o banco de teste possuem 14 tabelas públicas após a Fase 4.
 
+## Fase 5
+
+A Fase 5 (dashboard e CRUDs) **não alterou o schema**: nenhuma tabela nova e nenhuma migration nova
+foram necessárias. As 14 tabelas públicas continuam as mesmas. Os testes de integração da Fase 5
+(`tests/integration/crud.test.ts`) usam exclusivamente `criarov0_test`, com guarda destrutiva que
+recusa executar se `TEST_DATABASE_URL` não apontar para `criarov0_test`.
+
 Bootstrap do owner:
 
 ```bash

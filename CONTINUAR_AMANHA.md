@@ -2,16 +2,29 @@
 
 ## Estado atual
 
-Fase 4 — Better Auth, login, sessão persistente e RBAC implementada na branch `feat/auth-rbac`.
+Fase 5 — dashboard e CRUDs conectados ao PostgreSQL real, implementada na branch
+`feat/dashboard-cruds`.
 
-O painel possui autenticação interna por e-mail e senha, owner inicial, troca obrigatória da senha inicial, RBAC server-side, Proxy com redirecionamentos rápidos, logout e administração básica de usuários owner-only.
+O painel administrativo lê e escreve dados reais no PostgreSQL: dashboard com métricas agregadas,
+CRUDs de contas gerenciadas, campanhas, indicações, clientes, pedidos e créditos, extrato e
+reconciliação do ledger, página de atividades (auditoria), notificações (com badge no header) e
+configurações (chaves de aplicação com validação Zod por chave). Toda mutation valida sessão,
+permissão e entrada no servidor, registra activity e revalida cache. Detalhes em
+`docs/dashboard-and-cruds.md`.
 
-Não foram implementados login social, recuperação de senha por e-mail, SMTP, PM2, Nginx, domínio ou deploy definitivo.
+Fase 4 — Better Auth, login, sessão persistente e RBAC — permanece na base: autenticação interna
+por e-mail e senha, owner inicial, troca obrigatória da senha inicial, RBAC server-side, Proxy com
+redirecionamentos rápidos, logout e administração de usuários owner-only.
+
+Não foram implementados login social, recuperação de senha por e-mail, SMTP, PM2, Nginx, domínio,
+deploy definitivo, E2E (Playwright), automação externa, navegador automatizado, OTP, CAPTCHA ou
+afiliados.
 
 ## Último commit
 
 - Commit base da Fase 3: `22726b4 feat: add postgres and drizzle persistence foundation`.
 - Commit da Fase 4: `feat: add secure authentication and rbac`.
+- Commit da Fase 5: `feat: connect dashboard and cruds to postgres`.
 
 ## Banco usado
 
@@ -99,6 +112,25 @@ Nenhum Nginx ou domínio foi configurado.
 
 DNS informado para fase futura: `v0.panzza.com.br`.
 
+## Testes da Fase 5
+
+Executados e aprovados:
+
+```bash
+corepack pnpm@9.15.9 typecheck        # 0 erros
+corepack pnpm@9.15.9 lint             # 0 avisos
+corepack pnpm@9.15.9 test             # 45 testes (5 arquivos)
+corepack pnpm@9.15.9 test:integration # 37 testes (3 arquivos), somente criarov0_test
+corepack pnpm@9.15.9 build            # build de produção ok
+corepack pnpm@9.15.9 db:check         # migrations consistentes
+```
+
+Smoke test: `next start` em porta livre ligado a `criarov0_test`, 30/30 checagens aprovadas
+(health, login, proteção de rotas, dashboard real, leituras por papel, `/usuarios` owner-only,
+logout). Não há script `test:e2e`.
+
 ## Próximo passo exato
 
-Fase 5 — conectar dashboard e CRUDs ao PostgreSQL real.
+Fase 6 — ainda não iniciada. Não configurar PM2, Nginx ou domínio nesta etapa.
+
+DNS informado para fase futura: `v0.panzza.com.br`.
