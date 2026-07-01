@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { X, Upload, FileText, CheckCircle2, Plus } from "lucide-react"
+import { X, FileText, CheckCircle2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { parseAccounts } from "@/lib/farm"
 
@@ -18,20 +18,20 @@ export function AddAccountsModal({
   const [draft, setDraft] = useState("")
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Começa sempre vazio — o modal serve só para adicionar NOVAS contas
-  useEffect(() => {
-    if (open) setDraft("")
-  }, [open])
+  const close = useCallback(() => {
+    setDraft("")
+    onClose()
+  }, [onClose])
 
   // Fecha com ESC
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
+      if (e.key === "Escape") close()
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [open, onClose])
+  }, [open, close])
 
   const count = parseAccounts(draft).length
 
@@ -61,7 +61,7 @@ export function AddAccountsModal({
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-background/80 backdrop-blur-md"
-            onClick={onClose}
+            onClick={close}
             aria-hidden
           />
 
@@ -85,12 +85,12 @@ export function AddAccountsModal({
                 <div>
                   <h2 className="text-lg font-bold leading-tight">Adicionar contas</h2>
                   <p className="text-sm text-muted-foreground">
-                    Novas contas entram no pool de farm
+                    Novas contas entram na fila administrativa
                   </p>
                 </div>
               </div>
               <button
-                onClick={onClose}
+                onClick={close}
                 className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                 aria-label="Fechar"
               >
@@ -132,7 +132,7 @@ export function AddAccountsModal({
               rows={9}
               spellCheck={false}
               autoFocus
-              placeholder={"email@dominio.com > senha\noutro@dominio.com > senha"}
+              placeholder={"Conta Norte, norte.ops@example.com, Plataforma A, 200\nConta Sul, sul.ops@example.com, Plataforma B, 150"}
               className="w-full resize-none rounded-lg border border-input bg-background/60 p-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
             />
             <p className="mt-1.5 text-[11px] text-muted-foreground">
@@ -146,13 +146,12 @@ export function AddAccountsModal({
             <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               <CheckCircle2 className="size-3.5 text-primary" />
               <span className="font-mono font-semibold text-primary">{count}</span> contas
-              detectadas · formatos{" "}
-              <code className="text-foreground">{"email > senha"}</code> ou{" "}
-              <code className="text-foreground">email:senha</code>
+              detectadas · formato{" "}
+              <code className="text-foreground">rótulo, e-mail, provedor, limite</code>
             </div>
 
             <div className="mt-5 flex gap-3">
-              <Button variant="outline" onClick={onClose} className="flex-1">
+              <Button variant="outline" onClick={close} className="flex-1">
                 Cancelar
               </Button>
               <Button onClick={confirm} disabled={count === 0} className="flex-1 ring-glow">

@@ -1,23 +1,21 @@
-export type AccountStatus = "idle" | "running" | "done" | "error"
+export type AccountStatus = "available" | "queued" | "review" | "archived"
 
 export type Account = {
   id: string
+  label: string
   email: string
-  password: string
+  provider: string
   status: AccountStatus
+  creditBalance: number
+  monthlyCreditLimit: number
   progress: number
 }
 
-export const DEFAULT_ACCOUNTS_RAW = `joanny827016@z-auth.site > R8ZL5q1qBJ9r
-cham69@z-auth.site > AIXuyn3Oj@v*
-jones875382@z-auth.site > vL(2EBSWhTMD
-euclid1977@z-auth.site > MjQTljFDwTxO
-greagoir64@z-auth.site > QPDR4Yy85hbM
-victor82000@z-auth.site > DCD4Zl2FjbNP
-crewe469006@z-auth.site > GOzlMaX8vczT
-eibhir_4691@z-auth.site > UkkvC9H35YEG
-wieland_0747@z-auth.site > u7Hr6Vkq*O*f
-kare_6817@z-auth.site > RKgPMl1InQP1`
+export const DEFAULT_ACCOUNTS_RAW = `Conta Norte, norte.ops@example.com, Plataforma A, 200
+Conta Sul, sul.ops@example.com, Plataforma B, 200
+Conta Leste, leste.ops@example.com, Plataforma A, 150
+Conta Oeste, oeste.ops@example.com, Plataforma C, 200
+Conta Backup, backup.ops@example.com, Plataforma B, 100`
 
 let counter = 0
 function uid() {
@@ -31,41 +29,48 @@ export function parseAccounts(raw: string): Account[] {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
-      // Aceita formatos "email > senha", "email:senha", "email | senha"
-      const match = line.split(/\s*(?:>|:|\|)\s*/)
-      const email = (match[0] || "").trim()
-      const password = (match[1] || "").trim()
+      // Formato demo seguro: "rótulo, e-mail, provedor, limite mensal".
+      const match = line.split(/\s*,\s*/)
+      const label = (match[0] || "").trim()
+      const email = (match[1] || "").trim()
+      const provider = (match[2] || "Interno").trim()
+      const monthlyCreditLimit = Number(match[3] || 200)
       return {
         id: uid(),
+        label,
         email,
-        password,
-        status: "idle" as AccountStatus,
+        provider,
+        status: "available" as AccountStatus,
+        creditBalance: Math.max(0, Math.min(monthlyCreditLimit, monthlyCreditLimit * 0.75)),
+        monthlyCreditLimit,
         progress: 0,
       }
     })
-    .filter((a) => a.email.includes("@") && a.password.length > 0)
+    .filter((a) => a.label.length > 0 && a.email.includes("@"))
 }
 
 export function serializeAccounts(accounts: Account[]): string {
-  return accounts.map((a) => `${a.email} > ${a.password}`).join("\n")
+  return accounts
+    .map((a) => `${a.label}, ${a.email}, ${a.provider}, ${a.monthlyCreditLimit}`)
+    .join("\n")
 }
 
 export const MAX_INVITES = 40
-// Ganho por email/convite e teto por conta
+// Crédito estimado por atividade administrativa e teto mensal por conta.
 export const PER_INVITE = 5
 export const MAX_PER_ACCOUNT = MAX_INVITES * PER_INVITE // $200
 
-// Sequência realista do fluxo de uma conta.
+// Sequência demonstrativa de uma fila operacional interna.
 // `weight` controla a duração relativa de cada etapa.
 export const FARM_STEPS = [
-  { key: "open", label: "Abrindo link de convite", weight: 4 },
-  { key: "email", label: "Gerando e-mail temporário", weight: 4 },
-  { key: "register", label: "Inserindo e-mail no cadastro", weight: 3 },
-  { key: "auth", label: "Autenticando via API", weight: 5 },
-  { key: "code", label: "Aguardando código de verificação", weight: 9 },
-  { key: "fill", label: "Inserindo código de verificação", weight: 3 },
-  { key: "confirm", label: "Confirmando convite", weight: 4 },
-  { key: "reward", label: "Recompensa confirmada", weight: 2 },
+  { key: "select", label: "Selecionando conta gerenciada", weight: 4 },
+  { key: "limit", label: "Validando limite mensal", weight: 4 },
+  { key: "campaign", label: "Associando campanha", weight: 3 },
+  { key: "queue", label: "Enfileirando atividade", weight: 5 },
+  { key: "review", label: "Aguardando revisão operacional", weight: 9 },
+  { key: "ledger", label: "Registrando saldo estimado", weight: 3 },
+  { key: "panel", label: "Atualizando painel", weight: 4 },
+  { key: "done", label: "Atividade concluída", weight: 2 },
 ] as const
 
 export const STEP_COUNT = FARM_STEPS.length

@@ -10,9 +10,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Credit Farm — Transforme contas em dólares',
+  title: 'Credit Console — Gestão de créditos e campanhas',
   description:
-    'Plataforma premium para farmar contas com a API NotLetters. Ganhe $5 por conta, defina metas em dólares e acompanhe seus ganhos em tempo real.',
+    'Painel administrativo para organizar contas gerenciadas, campanhas, créditos, vendas, clientes e atividades.',
   generator: 'v0.app',
   icons: {
     icon: [

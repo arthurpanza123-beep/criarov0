@@ -7,9 +7,37 @@ __v0_jsx-dev-runtime.ts
 .vercel/
 
 # Environment variables
+.env
 .env*.local
+.env.local
+.env.production
+.env.production.local
+
+# Secrets and runtime credentials
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+*.session
+*.sessions
+*.cookie
+*.cookies
+cookies.json
+session.json
+sessions/
+credentials/
+secrets/
 
 # Common ignores
 node_modules
 .next/
+out/
+dist/
+coverage/
+tmp/
+temp/
+.tmp/
+.cache/
+tsconfig.tsbuildinfo
 .DS_Store

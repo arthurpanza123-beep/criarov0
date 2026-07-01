@@ -6,9 +6,6 @@ import {
   Play,
   Pause,
   RotateCcw,
-  KeyRound,
-  Eye,
-  EyeOff,
   Mail,
   MailCheck,
   DollarSign,
@@ -28,12 +25,13 @@ import {
   KeySquare,
   MousePointerClick,
   Gift,
+  type LucideIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AnimatedNumber } from "@/components/animated-number"
 import { FarmCore } from "@/components/farm-core"
 import { AddAccountsModal } from "@/components/add-accounts-modal"
-import { StartFarmDialog, type StartConfig } from "@/components/start-farm-dialog"
+import { StartFarmDialog } from "@/components/start-farm-dialog"
 import {
   type Account,
   DEFAULT_ACCOUNTS_RAW,
@@ -62,17 +60,14 @@ const STEP_ICONS = [
 type FarmState = "idle" | "running" | "paused" | "done"
 type FarmMode = "all" | "goal"
 type FeedItem = { id: string; email: string; t: string }
-type Tab = "farm" | "settings"
+type Tab = "queue" | "settings"
 
 function nowTime() {
   return new Date().toLocaleTimeString("pt-BR", { hour12: false })
 }
 
 export function FarmConsole() {
-  const [tab, setTab] = useState<Tab>("farm")
-  const [apiKey, setApiKey] = useState("")
-  const [showKey, setShowKey] = useState(false)
-  const [rawAccounts, setRawAccounts] = useState(DEFAULT_ACCOUNTS_RAW)
+  const [tab, setTab] = useState<Tab>("queue")
   const [accounts, setAccounts] = useState<Account[]>(() =>
     parseAccounts(DEFAULT_ACCOUNTS_RAW),
   )
@@ -83,14 +78,16 @@ export function FarmConsole() {
   const [feed, setFeed] = useState<FeedItem[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [startOpen, setStartOpen] = useState(false)
-  const [config, setConfig] = useState<StartConfig | null>(null)
 
-  // Meta de ganhos ($5 por convite · até $200 por conta)
+  // Meta demonstrativa de créditos ($5 por atividade · até $200 por conta).
   const [mode, setMode] = useState<FarmMode>("all")
   const [goalUsd, setGoalUsd] = useState(400)
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const accountsRef = useRef(accounts)
+  const modeRef = useRef(mode)
+  const neededForGoalRef = useRef(0)
+  const usedCountRef = useRef(0)
   const progressRef = useRef(0)
   // Motor baseado em tempo: duração total da conta atual + tempo decorrido
   const durationRef = useRef(randomAccountDuration())
@@ -100,7 +97,7 @@ export function FarmConsole() {
   }, [accounts])
 
   const available = accounts.length
-  // Cada conta farmada rende $5
+  // Cada atividade administrativa adiciona $5 ao saldo demonstrativo.
   const earnings = usedCount * PER_INVITE
 
   // Meta: arredonda SEMPRE para cima o nº de CONTAS necessárias ($5/conta)
@@ -116,7 +113,13 @@ export function FarmConsole() {
       ? Math.min(100, Math.round((usedCount / Math.max(1, neededForGoal)) * 100))
       : Math.round((usedCount / Math.max(1, usedCount + available)) * 100)
 
-  // Loop de farm — consome 1 conta por vez e a REMOVE da lista ao concluir.
+  useEffect(() => {
+    modeRef.current = mode
+    neededForGoalRef.current = neededForGoal
+    usedCountRef.current = usedCount
+  }, [mode, neededForGoal, usedCount])
+
+  // Loop demonstrativo: processa 1 conta por vez e a remove da fila local.
   useEffect(() => {
     if (state !== "running") {
       if (timerRef.current) clearInterval(timerRef.current)
@@ -144,11 +147,20 @@ export function FarmConsole() {
         durationRef.current = randomAccountDuration()
         setCurProgress(0)
         setAccounts((prev) => prev.slice(1))
-        setUsedCount((u) => u + 1)
+        const nextUsedCount = usedCountRef.current + 1
+        usedCountRef.current = nextUsedCount
+        setUsedCount(nextUsedCount)
         setFeed((prev) => [
           { id: `${current.email}-${Date.now()}`, email: current.email, t: nowTime() },
           ...prev,
         ])
+        if (
+          list.length <= 1 ||
+          (modeRef.current === "goal" && nextUsedCount >= neededForGoalRef.current)
+        ) {
+          setState("done")
+          setActiveEmail(null)
+        }
       } else {
         setCurProgress(progressRef.current)
       }
@@ -158,15 +170,6 @@ export function FarmConsole() {
       if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [state])
-
-  // Detecta conclusão (lista vazia ou meta atingida)
-  useEffect(() => {
-    if (state !== "running") return
-    if (available === 0 || (mode === "goal" && usedCount >= neededForGoal)) {
-      setState("done")
-      setActiveEmail(null)
-    }
-  }, [available, usedCount, mode, neededForGoal, state])
 
   const coreProgress = state === "done" ? 100 : curProgress
   const locked = state === "running" || state === "paused"
@@ -190,16 +193,14 @@ export function FarmConsole() {
     }
     setStartOpen(true)
   }
-  function confirmStart(cfg: StartConfig) {
-    setConfig(cfg)
+  function confirmStart() {
     setStartOpen(false)
     setState("running")
   }
   function pause() {
     setState("paused")
   }
-  // Reset limpa apenas o estado/contadores da sessão.
-  // NÃO restaura contas já farmadas — elas já foram convidadas e saem para sempre.
+  // Reset limpa apenas o estado/contadores da sessão demonstrativa.
   function reset() {
     if (timerRef.current) clearInterval(timerRef.current)
     progressRef.current = 0
@@ -215,7 +216,6 @@ export function FarmConsole() {
   function addAccounts(raw: string) {
     const incoming = parseAccounts(raw)
     if (incoming.length === 0) return
-    setRawAccounts((prev) => (prev.trim() ? `${prev.trim()}\n${raw.trim()}` : raw.trim()))
     setAccounts((prev) => [...prev, ...incoming])
     setModalOpen(false)
   }
@@ -258,7 +258,7 @@ export function FarmConsole() {
 
             {/* Abas */}
             <div className="flex gap-1 rounded-lg border border-border bg-background/50 p-1">
-              <TabButton active={tab === "farm"} onClick={() => setTab("farm")} icon={Activity} label="Farm" />
+              <TabButton active={tab === "queue"} onClick={() => setTab("queue")} icon={Activity} label="Fila" />
               <TabButton
                 active={tab === "settings"}
                 onClick={() => setTab("settings")}
@@ -272,9 +272,9 @@ export function FarmConsole() {
         {/* Corpo */}
         <div className="min-h-0 flex-1 overflow-hidden">
           <AnimatePresence mode="wait">
-            {tab === "farm" ? (
+            {tab === "queue" ? (
               <motion.div
-                key="farm"
+                key="queue"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -294,7 +294,7 @@ export function FarmConsole() {
                     />
 
                     <span className="relative mb-3 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-                      Farm Core
+                      Console Core
                     </span>
 
                     <div className="relative">
@@ -342,7 +342,7 @@ export function FarmConsole() {
                                 {state === "paused" && "Aguardando retomada"}
                                 {state === "done" && (
                                   <span className="text-primary">
-                                    {usedCount} contas concluídas
+                                    {usedCount} atividades concluídas
                                   </span>
                                 )}
                               </motion.p>
@@ -353,7 +353,7 @@ export function FarmConsole() {
                                 <span className="text-muted-foreground">
                                   {mode === "goal"
                                     ? `${usedCount}/${neededForGoal} · meta $${goalUsd}`
-                                    : `${usedCount} farmadas`}
+                                    : `${usedCount} atividades`}
                                 </span>
                                 <span className="font-semibold text-primary">{overall}%</span>
                               </div>
@@ -412,7 +412,7 @@ export function FarmConsole() {
                         disabled={available === 0}
                       >
                         <Play className="transition-transform group-hover:scale-110" />
-                        {state === "paused" ? "Retomar farm" : "Iniciar farm"}
+                        {state === "paused" ? "Retomar fila" : "Iniciar fila"}
                       </Button>
                     ) : (
                       <Button onClick={pause} size="lg" variant="secondary" className="flex-1 font-medium">
@@ -586,35 +586,19 @@ export function FarmConsole() {
                 transition={{ duration: 0.16 }}
                 className="grid h-full min-h-0 content-start gap-px overflow-y-auto bg-border lg:grid-cols-3 lg:content-stretch lg:overflow-hidden"
               >
-                {/* API Key */}
-                <SettingsPanel icon={KeyRound} title="API NotLetters" subtitle="Autentica o worker">
-                  <div className="relative">
-                    <input
-                      type={showKey ? "text" : "password"}
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="nl_live_••••••••••••"
-                      className="w-full rounded-lg border border-input bg-background/60 px-3 py-2.5 pr-10 font-mono text-sm outline-none transition-colors focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowKey((v) => !v)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                      aria-label={showKey ? "Esconder chave" : "Mostrar chave"}
-                    >
-                      {showKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    </button>
+                {/* Operação segura */}
+                <SettingsPanel icon={ShieldCheck} title="Operação segura" subtitle="Sem credenciais externas">
+                  <div className="rounded-lg border border-border bg-background/40 p-4">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Política ativa
+                    </span>
+                    <p className="mt-2 text-sm leading-relaxed text-foreground/80">
+                      Contas gerenciadas armazenam apenas metadados, saldo e limites.
+                    </p>
                   </div>
                   <div className="mt-auto flex items-center gap-2 border-t border-border pt-3 font-mono text-[10px] uppercase tracking-wider">
-                    <span
-                      className={`flex size-2 shrink-0 rounded-full transition-colors ${
-                        apiKey ? "bg-primary glow-sm" : "bg-muted-foreground/40"
-                      }`}
-                      aria-hidden
-                    />
-                    <span className="text-muted-foreground">
-                      {apiKey ? "Chave configurada" : "Sem chave"}
-                    </span>
+                    <span className="flex size-2 shrink-0 rounded-full bg-primary glow-sm" aria-hidden />
+                    <span className="text-muted-foreground">Credenciais externas fora do sistema</span>
                   </div>
                 </SettingsPanel>
 
@@ -641,12 +625,12 @@ export function FarmConsole() {
                     Adicionar contas
                   </Button>
                   <p className="mt-auto border-t border-border pt-3 text-center font-mono text-[10px] text-muted-foreground">
-                    e-mail &gt; senha (uma por linha) ou .txt
+                    rótulo, e-mail, provedor, limite mensal
                   </p>
                 </SettingsPanel>
 
-                {/* Meta de ganhos */}
-                <SettingsPanel icon={Target} title="Meta de ganhos" subtitle="Até onde o farm vai">
+                {/* Meta de créditos */}
+                <SettingsPanel icon={Target} title="Meta de créditos" subtitle="Até onde a fila vai">
                   <div className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-background/40 p-1">
                     <ModeButton
                       active={mode === "all"}
@@ -673,7 +657,7 @@ export function FarmConsole() {
                         className="overflow-hidden"
                       >
                         <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                          Quanto ganhar (USD)
+                          Meta de créditos (USD)
                         </span>
                         <div className="relative">
                           <DollarSign className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
@@ -778,7 +762,7 @@ function SettingsPanel({
   subtitle,
   children,
 }: {
-  icon: typeof KeyRound
+  icon: LucideIcon
   title: string
   subtitle: string
   children: React.ReactNode
@@ -809,7 +793,7 @@ function TabButton({
 }: {
   active: boolean
   onClick: () => void
-  icon: typeof Activity
+  icon: LucideIcon
   label: string
 }) {
   return (
@@ -845,7 +829,7 @@ function ModeButton({
   active: boolean
   disabled?: boolean
   onClick: () => void
-  icon: typeof Target
+  icon: LucideIcon
   label: string
 }) {
   return (

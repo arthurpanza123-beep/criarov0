@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { X, Coins, Link2, ArrowRight, ArrowLeft, Rocket, AlertTriangle } from "lucide-react"
+import { X, Coins, ClipboardList, ArrowRight, ArrowLeft, Rocket, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MAX_INVITES } from "@/lib/farm"
 
@@ -10,7 +10,7 @@ const TOKENS_PER_LINK = 200
 
 export type StartConfig = {
   tokens: number
-  inviteLinks: string[]
+  campaignRefs: string[]
 }
 
 export function StartFarmDialog({
@@ -26,35 +26,18 @@ export function StartFarmDialog({
 }) {
   const [step, setStep] = useState<1 | 2>(1)
   const [tokens, setTokens] = useState(200)
-  const [links, setLinks] = useState<string[]>([""])
+  const [refs, setRefs] = useState<string[]>([""])
 
-  // nº de campos de link = 1 a cada 200 tokens (arredonda pra cima)
+  // nº de referências internas = 1 a cada 200 créditos (arredonda pra cima)
   const requiredLinks = useMemo(
     () => Math.max(1, Math.ceil(tokens / TOKENS_PER_LINK)),
     [tokens],
   )
 
-  // Sincroniza a quantidade de campos com o necessário
-  useEffect(() => {
-    setLinks((prev) => {
-      const next = [...prev]
-      while (next.length < requiredLinks) next.push("")
-      return next.slice(0, requiredLinks)
-    })
-  }, [requiredLinks])
-
-  // Reseta ao abrir
-  useEffect(() => {
-    if (open) {
-      setStep(1)
-      setTokens(200)
-      setLinks([""])
-    }
-  }, [open])
-
   if (!open) return null
 
-  const filledLinks = links.filter((l) => l.trim()).length
+  const visibleRefs = Array.from({ length: requiredLinks }, (_, i) => refs[i] ?? "")
+  const filledLinks = visibleRefs.filter((l) => l.trim()).length
   // Capacidade: cada conta cobre MAX_INVITES tokens
   const overCapacity = tokens > maxTokens
   const missingTokens = Math.max(0, tokens - maxTokens)
@@ -64,7 +47,19 @@ export function StartFarmDialog({
 
   function confirm() {
     if (!canConfirm) return
-    onConfirm({ tokens, inviteLinks: links.map((l) => l.trim()) })
+    onConfirm({ tokens, campaignRefs: visibleRefs.map((l) => l.trim()) })
+    resetDraft()
+  }
+
+  function close() {
+    resetDraft()
+    onClose()
+  }
+
+  function resetDraft() {
+    setStep(1)
+    setTokens(200)
+    setRefs([""])
   }
 
   // Enter confirma/avança (ignora durante composição de IME)
@@ -88,7 +83,7 @@ export function StartFarmDialog({
       >
         <button
           className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-          onClick={onClose}
+          onClick={close}
           aria-label="Fechar"
         />
         <motion.div
@@ -106,14 +101,14 @@ export function StartFarmDialog({
                 <Rocket className="size-4 text-primary" />
               </span>
               <div className="flex flex-col">
-                <h3 className="text-sm font-semibold leading-tight">Iniciar farm</h3>
+                <h3 className="text-sm font-semibold leading-tight">Iniciar fila</h3>
                 <span className="text-xs text-muted-foreground">
                   Passo {step} de 2
                 </span>
               </div>
             </div>
             <button
-              onClick={onClose}
+              onClick={close}
               className="text-muted-foreground transition-colors hover:text-foreground"
               aria-label="Fechar"
             >
@@ -137,7 +132,7 @@ export function StartFarmDialog({
               >
                 <label className="mb-2 flex items-center gap-2 text-sm font-medium">
                   <Coins className="size-4 text-primary" />
-                  Quantos tokens você quer no pedido?
+                  Quantos créditos entram na fila?
                 </label>
                 <input
                   type="number"
@@ -155,10 +150,10 @@ export function StartFarmDialog({
                 {/* Capacidade disponível */}
                 <div className="mt-2 flex items-center justify-between font-mono text-[11px]">
                   <span className="text-muted-foreground">
-                    Capacidade: {maxTokens} tokens
+                    Capacidade: {maxTokens} créditos
                   </span>
                   <span className="text-muted-foreground">
-                    {Math.ceil(maxTokens / MAX_INVITES)} contas · {MAX_INVITES}/conta
+                    {Math.ceil(maxTokens / MAX_INVITES)} contas · {MAX_INVITES} créditos/conta
                   </span>
                 </div>
 
@@ -168,7 +163,7 @@ export function StartFarmDialog({
                     <span className="leading-relaxed text-foreground/80">
                       Você não tem contas suficientes. Faltam{" "}
                       <span className="font-mono font-semibold text-destructive">
-                        {missingTokens} tokens
+                        {missingTokens} créditos
                       </span>{" "}
                       —{" "}
                       <span className="font-semibold text-destructive">
@@ -180,22 +175,22 @@ export function StartFarmDialog({
                   </div>
                 ) : (
                   <div className="mt-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs">
-                    <Link2 className="size-3.5 shrink-0 text-primary" />
+                    <ClipboardList className="size-3.5 shrink-0 text-primary" />
                     <span className="text-muted-foreground">
                       {tokens <= TOKENS_PER_LINK ? (
                         <>
                           Pedido de{" "}
                           <span className="font-mono font-semibold text-primary">{tokens}</span>{" "}
-                          tokens — será pedido{" "}
-                          <span className="font-semibold text-primary">1 link de convite</span>.
+                          créditos — será pedida{" "}
+                          <span className="font-semibold text-primary">1 referência interna</span>.
                         </>
                       ) : (
                         <>
-                          Acima de {TOKENS_PER_LINK} tokens — serão pedidos{" "}
+                          Acima de {TOKENS_PER_LINK} créditos — serão pedidas{" "}
                           <span className="font-mono font-semibold text-primary">
-                            {requiredLinks} links de convite
+                            {requiredLinks} referências internas
                           </span>{" "}
-                          (1 a cada {TOKENS_PER_LINK}).
+                          (1 a cada {TOKENS_PER_LINK} créditos).
                         </>
                       )}
                     </span>
@@ -220,27 +215,27 @@ export function StartFarmDialog({
                 exit={{ opacity: 0, x: -16 }}
               >
                 <label className="mb-1 flex items-center gap-2 text-sm font-medium">
-                  <Link2 className="size-4 text-primary" />
+                  <ClipboardList className="size-4 text-primary" />
                   {requiredLinks === 1
-                    ? "Link de convite"
-                    : `Links de convite (${requiredLinks})`}
+                    ? "Referência interna"
+                    : `Referências internas (${requiredLinks})`}
                 </label>
                 <p className="mb-3 text-xs text-muted-foreground">
-                  Cada link cobre até {TOKENS_PER_LINK} tokens · {filledLinks}/{requiredLinks} preenchidos
+                  Cada referência cobre até {TOKENS_PER_LINK} créditos · {filledLinks}/{requiredLinks} preenchidas
                 </p>
 
                 <div className="flex max-h-56 flex-col gap-2 overflow-y-auto pr-1">
-                  {links.map((link, i) => (
+                  {visibleRefs.map((ref, i) => (
                     <div key={i} className="relative">
                       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
                         {i + 1}
                       </span>
                       <input
-                        type="url"
-                        value={link}
-                        placeholder="https://convite.exemplo/abc123"
+                        type="text"
+                        value={ref}
+                        placeholder="Campanha Julho / cliente ou pedido"
                         onChange={(e) =>
-                          setLinks((prev) =>
+                          setRefs((prev) =>
                             prev.map((l, idx) => (idx === i ? e.target.value : l)),
                           )
                         }
@@ -257,7 +252,7 @@ export function StartFarmDialog({
                   </Button>
                   <Button className="flex-1 ring-glow" size="lg" disabled={!canConfirm} onClick={confirm}>
                     <Rocket />
-                    Iniciar farm
+                    Iniciar fila
                   </Button>
                 </div>
               </motion.div>

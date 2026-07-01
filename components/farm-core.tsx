@@ -105,7 +105,7 @@ export function FarmCore({
               </motion.span>
               <span className="text-xs uppercase tracking-widest text-muted-foreground">
                 {state === "running"
-                  ? "Farmando"
+                  ? "Processando"
                   : state === "paused"
                     ? "Pausado"
                     : "Em espera"}
