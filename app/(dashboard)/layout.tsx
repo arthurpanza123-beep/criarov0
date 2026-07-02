@@ -15,9 +15,14 @@ const nav = [
   { href: "/clientes", label: "Clientes", icon: "clientes", resource: "customers" },
   { href: "/pedidos", label: "Pedidos", icon: "pedidos", resource: "orders" },
   { href: "/creditos", label: "Créditos", icon: "creditos", resource: "creditLedger" },
+  { href: "/jobs", label: "Fila", icon: "jobs", resource: "jobs" },
+  { href: "/importacoes", label: "Importações", icon: "importacoes", resource: "imports" },
+  { href: "/exportacoes", label: "Exportações", icon: "exportacoes", resource: "dashboard" },
+  { href: "/relatorios", label: "Relatórios", icon: "relatorios", resource: "reports" },
   { href: "/atividades", label: "Atividades", icon: "atividades", resource: "activities" },
   { href: "/notificacoes", label: "Notificações", icon: "notificacoes", resource: "dashboard" },
   { href: "/configuracoes", label: "Configurações", icon: "configuracoes", resource: "settings" },
+  { href: "/sistema", label: "Sistema", icon: "sistema", resource: "system" },
 ] satisfies Array<{ href: string; label: string; icon: string; resource: Resource }>
 
 export const dynamic = "force-dynamic"

@@ -4,12 +4,17 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Activity,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   Bell,
   BriefcaseBusiness,
   Building2,
   ChartNoAxesCombined,
   CircleDollarSign,
   ClipboardList,
+  HeartPulse,
+  LineChart,
+  ListChecks,
   LogOut,
   Megaphone,
   Settings,
@@ -37,6 +42,11 @@ const icons = {
   atividades: Activity,
   notificacoes: Bell,
   configuracoes: Settings,
+  jobs: ListChecks,
+  importacoes: ArrowDownToLine,
+  exportacoes: ArrowUpFromLine,
+  relatorios: LineChart,
+  sistema: HeartPulse,
 } as const
 
 export function AdminShell({

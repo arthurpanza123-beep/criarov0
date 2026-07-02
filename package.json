@@ -11,6 +11,8 @@
     "test": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration --config vitest.config.ts",
     "typecheck": "tsc --noEmit",
+    "worker": "node --conditions=react-server --import tsx scripts/worker.ts",
+    "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx lib/db/seed.ts",
@@ -38,6 +40,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "1.61.1",
     "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^24",
     "@types/react": "^19",

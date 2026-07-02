@@ -14,6 +14,10 @@ export const accessControl = createAccessControl({
   activities: actions,
   settings: actions,
   users: actions,
+  jobs: actions,
+  imports: actions,
+  reports: actions,
+  system: actions,
 } as const)
 
 const readOnly = {
@@ -26,6 +30,8 @@ const readOnly = {
   creditLedger: ["read"],
   activities: ["read"],
   settings: ["read"],
+  jobs: ["read"],
+  reports: ["read"],
 } as const
 
 export const rbacRoles = {
@@ -40,6 +46,10 @@ export const rbacRoles = {
     activities: actions,
     settings: actions,
     users: actions,
+    jobs: actions,
+    imports: actions,
+    reports: actions,
+    system: actions,
     user: ["create", "list", "get", "update", "ban", "set-role", "set-password", "set-email"],
   }),
   admin: accessControl.newRole({
@@ -52,6 +62,10 @@ export const rbacRoles = {
     creditLedger: ["read", "create"],
     activities: ["read"],
     settings: ["read", "update"],
+    jobs: actions,
+    imports: actions,
+    reports: ["read"],
+    system: ["read"],
   }),
   operator: accessControl.newRole({
     dashboard: ["read"],
@@ -62,6 +76,8 @@ export const rbacRoles = {
     orders: ["read", "update"],
     creditLedger: ["read"],
     activities: ["read", "create"],
+    jobs: ["read"],
+    reports: ["read"],
   }),
   viewer: accessControl.newRole(readOnly),
 } as const

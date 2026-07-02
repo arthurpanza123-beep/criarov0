@@ -31,9 +31,15 @@ export function createDatabaseClient(databaseUrl?: string) {
   }
 }
 
+let productionClient: DbClient | undefined
+
 export function getDatabaseClient() {
+  // A long-running Node server (next start / worker) must reuse a single pool.
+  // Creating a new client per call would leak connections and can exhaust the
+  // shared PostgreSQL cluster. In development we cache on globalThis to survive HMR.
   if (process.env.NODE_ENV === "production") {
-    return createDatabaseClient()
+    productionClient ??= createDatabaseClient()
+    return productionClient
   }
 
   globalThis.__v0FarmDbClient ??= createDatabaseClient()

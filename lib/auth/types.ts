@@ -13,6 +13,10 @@ export const resources = [
   "activities",
   "settings",
   "users",
+  "jobs",
+  "imports",
+  "reports",
+  "system",
 ] as const
 
 export const actions = ["read", "create", "update", "archive", "manage"] as const

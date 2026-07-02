@@ -6,6 +6,7 @@ import { sanitizeCallbackUrl } from "@/lib/auth/redirects"
 const PUBLIC_PREFIXES = [
   "/api/auth",
   "/api/health",
+  "/api/version",
   "/_next",
   "/favicon.ico",
   "/icon",

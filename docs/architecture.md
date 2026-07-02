@@ -143,11 +143,39 @@ Camadas adicionadas:
 
 Nenhuma tabela nova foi criada nesta fase; nenhuma migration nova foi necessária.
 
+## Fase 6 — operação, observabilidade e prontidão
+
+Transforma o painel em uma aplicação operacional. Detalhes em `docs/jobs.md`,
+`docs/import-export.md`, `docs/observability.md`, `docs/operations.md` e
+`docs/production-readiness.md`.
+
+- **Fila operacional** (PostgreSQL, sem Redis): tabelas `jobs`/`job_runs`, `lib/services/jobs-service.ts`,
+  handlers `lib/jobs/handlers.ts`, worker `lib/jobs/worker.ts` (+ `scripts/worker.ts`, `pnpm worker`).
+  Estados, idempotência, retry/backoff, timeout, prioridade, agendamento, lock concorrente
+  (`FOR UPDATE SKIP LOCKED`), dead-letter, cancelamento, histórico e graceful shutdown.
+- **Importação/exportação**: `lib/admin/csv.ts`, `lib/services/import-service.ts` (dry-run, dedup,
+  transacional, histórico em `import_batches`), `lib/services/export-service.ts` + `/api/export/[entity]`.
+- **Simulador/relatórios**: `lib/services/simulator-service.ts` (BigInt cents) + `/relatorios`.
+- **Observabilidade**: `lib/observability/*` (logger sanitizado, correlation id, versão/commit),
+  `/api/health/ready`, `/api/version`, `/api/metrics`, página `/sistema`.
+- **UI operacional**: `/jobs`, `/jobs/[id]`, `/importacoes`, `/exportacoes`, `/relatorios`, `/sistema`.
+- **RBAC**: recursos `jobs`, `imports`, `reports`, `system`.
+- **Segurança**: headers em `next.config.mjs`, cache-control privado nas APIs, limites de upload, e
+  correção do pool de conexões em produção (`lib/db/client.ts` reutiliza um único pool por processo).
+- **Testes**: unit + integração (`tests/integration/operations.test.ts`) + E2E Playwright
+  (`tests/e2e/`).
+
+Migration aditiva `0002_organic_kate_bishop.sql` (jobs, job_runs, import_batches). Aplicada em
+`criarov0_test` e em `criarov0` (principal). Agora 17 tabelas em ambos os bancos.
+
+## Deploy e infraestrutura
+
+Publicado em `https://v0.panzza.com.br`: PM2 (`v0-farmar-web` + `v0-farmar-worker`) atrás de Nginx
+com TLS (Let's Encrypt). Detalhes completos em `docs/deployment.md`.
+
 ## Ainda não implementado
 
 - Feedback inline de erros por formulário (Server Actions usam progressive enhancement).
-- Job agendado de reconciliação (hoje é sob demanda).
-- E2E com Playwright (coberto por integração + smoke test).
+- Agendamento cron embutido (jobs podem ser agendados via `run_at` futuro; sem daemon de cron).
 - Recuperação de senha por e-mail/SMTP.
 - Login social.
-- PM2, Nginx, domínio e deploy definitivo.

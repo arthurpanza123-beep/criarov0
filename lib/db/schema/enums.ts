@@ -48,3 +48,45 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "warning",
   "error",
 ])
+
+
+export const jobTypeEnum = pgEnum("job_type", [
+  "reconcile_account",
+  "generate_notification",
+  "import_entities",
+  "export_report",
+  "maintenance",
+])
+
+export const jobStatusEnum = pgEnum("job_status", [
+  "pending",
+  "scheduled",
+  "running",
+  "completed",
+  "failed",
+  "dead_letter",
+  "cancelled",
+])
+
+export const jobRunStatusEnum = pgEnum("job_run_status", [
+  "running",
+  "completed",
+  "failed",
+  "timeout",
+  "cancelled",
+])
+
+export const importEntityEnum = pgEnum("import_entity", [
+  "managed_accounts",
+  "campaigns",
+  "customers",
+])
+
+export const importStatusEnum = pgEnum("import_status", [
+  "pending",
+  "validated",
+  "dry_run",
+  "imported",
+  "failed",
+  "cancelled",
+])

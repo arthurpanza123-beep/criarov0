@@ -1,33 +1,71 @@
-# criarov0
+# v0 Farm Console (criarov0)
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+Painel administrativo de gestão de contas gerenciadas, campanhas de indicação, clientes, pedidos,
+créditos e operações internas (fila de jobs, importação/exportação, relatórios), com autenticação,
+RBAC e observabilidade.
 
-## Built with v0
+## Stack
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+- Next.js 16 (App Router) + React 19 + TypeScript estrito.
+- PostgreSQL 17 + Drizzle ORM (migrations SQL versionadas).
+- Better Auth 1.6.23 (e-mail/senha, RBAC, sem cadastro público).
+- Fila de jobs própria em PostgreSQL (sem Redis).
+- Vitest (unit/integração) + Playwright (E2E).
+- Tailwind CSS 4.
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_oCdp6AUJdAFOzyYcEH3eB32tXPPR)
+Detalhes completos em `docs/architecture.md`.
 
-## Getting Started
+## Documentação
 
-First, run the development server:
+| Documento | Conteúdo |
+| --- | --- |
+| `docs/architecture.md` | Stack, estrutura de pastas, camadas, fronteiras de segurança. |
+| `docs/database.md` | Bancos, migrations, comandos, verificação. |
+| `docs/authentication.md` | Better Auth, RBAC, bootstrap do owner. |
+| `docs/dashboard-and-cruds.md` | Páginas, services, regras financeiras, RBAC por recurso. |
+| `docs/jobs.md` | Fila de jobs: estados, garantias, worker. |
+| `docs/import-export.md` | Importação/exportação CSV, limites, segurança. |
+| `docs/observability.md` | Logs, correlation id, health/readiness/metrics. |
+| `docs/operations.md` | Runbook: comandos, troubleshooting. |
+| `docs/production-readiness.md` | Ambiente, migrations, segurança, checklist de deploy/rollback. |
+| `docs/deployment.md` | Deploy real: PM2, Nginx, domínio, HTTPS. |
+| `docs/rollback.md` | Procedimento de rollback de código, migration e infraestrutura. |
+| `docs/runbook.md` | Operação diária: start/stop/restart, verificação de saúde. |
+| `docs/backup-restore.md` | Backup lógico, checksum, restore validado. |
+| `docs/incident-response.md` | Resposta a incidentes: fila parada, banco indisponível, deploy com falha. |
+
+`CONTINUAR_AMANHA.md` é o handoff canônico com o estado real mais recente do projeto.
+
+## Ambiente local
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+source /home/panza/.nvm/nvm.sh
+cd "/home/panza/v0 farmar"
+corepack pnpm@9.15.9 install --frozen-lockfile
+corepack pnpm@9.15.9 dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Requer `.env.local` preenchido (ver `.env.example`). Nunca versionar `.env.local`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Comandos principais
 
-## Learn More
+```bash
+corepack pnpm@9.15.9 typecheck
+corepack pnpm@9.15.9 lint
+corepack pnpm@9.15.9 test              # unitários
+corepack pnpm@9.15.9 test:integration  # somente criarov0_test
+corepack pnpm@9.15.9 test:e2e          # Playwright
+corepack pnpm@9.15.9 build
+corepack pnpm@9.15.9 db:check
+corepack pnpm@9.15.9 worker            # worker da fila
+```
 
-To learn more, take a look at the following resources:
+## Produção
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+Servido via PM2 (`v0-farmar-web` + `v0-farmar-worker`, porta interna `3200`) atrás de Nginx com
+TLS (Let's Encrypt) em `https://v0.panzza.com.br`. Detalhes em `docs/deployment.md`.
+
+## Origem
+
+Repositório inicialmente gerado por [v0](https://v0.app); a partir da Fase 3 o projeto evoluiu para
+uma base própria com PostgreSQL, autenticação real, CRUDs conectados ao banco e operação em produção.

@@ -41,3 +41,17 @@ temp/
 .cache/
 tsconfig.tsbuildinfo
 .DS_Store
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# PM2 runtime logs
+logs/
+*.log
+
+# Database backups/dumps
+backups/
+*.dump

@@ -102,6 +102,28 @@ foram necessárias. As 14 tabelas públicas continuam as mesmas. Os testes de in
 (`tests/integration/crud.test.ts`) usam exclusivamente `criarov0_test`, com guarda destrutiva que
 recusa executar se `TEST_DATABASE_URL` não apontar para `criarov0_test`.
 
+## Fase 6
+
+A Fase 6 adiciona **3 tabelas** (agora **17 públicas**) via a migration aditiva
+`lib/db/migrations/0002_organic_kate_bishop.sql` (somente `CREATE TYPE`/`CREATE TABLE`/
+`ADD CONSTRAINT`/`CREATE INDEX`; nenhum `DROP`):
+
+- `jobs` — fila operacional (tipo, status, prioridade, payload, tentativas, backoff, timeout,
+  agendamento, lock, idempotency key única, autor).
+- `job_runs` — histórico por execução (tentativa, status, duração, erro sanitizado, logs).
+- `import_batches` — histórico de importações (entidade, modo dry-run/commit, contagens, relatório).
+
+Enums novos: `job_type`, `job_status`, `job_run_status`, `import_entity`, `import_status`.
+
+Protocolo de migration aplicado: gerada com `db:generate`, revisada, aplicada em `criarov0_test`,
+suíte executada, backup do principal com checksum, depois aplicada em `criarov0`. Nunca
+`drizzle-kit push`; nunca `DROP` destrutivo. Testes de integração da Fase 6
+(`tests/integration/operations.test.ts`) e E2E usam exclusivamente `criarov0_test`.
+
+**Estado real confirmado**: `criarov0` (principal) e `criarov0_test` têm ambos 17 tabelas públicas e
+3/3 migrations aplicadas (`drizzle.__drizzle_migrations`). O principal tem 168 constraints e 54
+índices em `public`.
+
 Bootstrap do owner:
 
 ```bash
