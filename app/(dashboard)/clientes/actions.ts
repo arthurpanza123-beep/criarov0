@@ -3,9 +3,29 @@
 import { recordAdminActivity } from "@/lib/admin/audit"
 import { customerFormSchema, idFormSchema, parseForm } from "@/lib/admin/form-schemas"
 import { guardedAction } from "@/lib/admin/server-action"
+import { runFormAction, type FormActionState } from "@/lib/admin/form-state"
 import { customersService } from "@/lib/services/customers-service"
+import type { CustomerRow } from "@/lib/db/schema"
 
 const paths = ["/", "/clientes", "/pedidos", "/atividades"]
+
+/** Feedback-friendly variant of createCustomerAction, for ActionForm/useActionState. */
+export async function createCustomerFormAction(
+  state: FormActionState<CustomerRow>,
+  formData: FormData,
+): Promise<FormActionState<CustomerRow>> {
+  return runFormAction("customers", "create", paths, state, async (actorId) => {
+    const input = parseForm(customerFormSchema, formData)
+    const row = await customersService.create(input)
+    await recordAdminActivity({
+      actorUserId: actorId,
+      entityType: "customer",
+      entityId: row.id,
+      action: "customer_created",
+    })
+    return row
+  }, formData)
+}
 
 export async function createCustomerAction(formData: FormData) {
   return guardedAction("customers", "create", paths, async (actorId) => {

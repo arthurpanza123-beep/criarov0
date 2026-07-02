@@ -12,5 +12,6 @@ export default defineConfig([
     "dist/**",
     "coverage/**",
     "next-env.d.ts",
+    "ecosystem.config.cjs",
   ]),
 ])

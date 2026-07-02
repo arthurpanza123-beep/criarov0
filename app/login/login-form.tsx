@@ -1,16 +1,20 @@
 "use client"
 
 import { useRouter, useSearchParams } from "next/navigation"
-import { Eye, EyeOff, Loader2, LogIn } from "lucide-react"
-import { useState, type FormEvent } from "react"
+import { Eye, EyeOff, LogIn } from "lucide-react"
+import { useRef, useState, type FormEvent } from "react"
 
-import { Button } from "@/components/ui/button"
+import { SubmitButton, FormError } from "@/components/admin/form-feedback"
+import { useToast } from "@/components/ui/toast"
 import { authClient } from "@/lib/auth/auth-client"
 import { sanitizeCallbackUrl } from "@/lib/auth/redirects"
 
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { push } = useToast()
+  const formRef = useRef<HTMLFormElement>(null)
+  const emailRef = useRef<HTMLInputElement>(null)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -31,27 +35,33 @@ export function LoginForm() {
     setLoading(false)
 
     if (result.error) {
+      // Never keep a rejected password sitting in the DOM.
       setPassword("")
       setError("Não foi possível entrar com esses dados.")
+      emailRef.current?.focus()
       return
     }
 
+    push("Login realizado.", "success")
     router.replace(sanitizeCallbackUrl(searchParams.get("callbackUrl")))
     router.refresh()
   }
 
   return (
-    <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4" noValidate>
+    <form ref={formRef} onSubmit={onSubmit} className="w-full max-w-sm space-y-4" noValidate>
       <div className="space-y-2">
         <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground" htmlFor="email">
           E-mail
         </label>
         <input
           id="email"
+          name="email"
+          ref={emailRef}
           type="email"
           autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
+          aria-invalid={Boolean(error)}
           className="h-11 w-full rounded-lg border border-border bg-background/70 px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-3 focus:ring-primary/20"
           required
         />
@@ -64,10 +74,12 @@ export function LoginForm() {
         <div className="flex h-11 rounded-lg border border-border bg-background/70 focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/20">
           <input
             id="password"
+            name="password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            aria-invalid={Boolean(error)}
             className="min-w-0 flex-1 bg-transparent px-3 text-sm text-foreground outline-none"
             required
           />
@@ -82,16 +94,11 @@ export function LoginForm() {
         </div>
       </div>
 
-      {error && (
-        <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-foreground/80">
-          {error}
-        </p>
-      )}
+      <FormError message={error} />
 
-      <Button type="submit" size="lg" className="w-full ring-glow" disabled={loading}>
-        {loading ? <Loader2 className="animate-spin" /> : <LogIn />}
+      <SubmitButton pending={loading} icon={<LogIn />} size="lg" className="w-full">
         Entrar
-      </Button>
+      </SubmitButton>
     </form>
   )
 }

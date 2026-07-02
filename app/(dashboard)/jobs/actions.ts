@@ -5,10 +5,32 @@ import { z } from "zod"
 import { recordAdminActivity } from "@/lib/admin/audit"
 import { idFormSchema, parseForm } from "@/lib/admin/form-schemas"
 import { guardedAction } from "@/lib/admin/server-action"
+import { runFormAction, type FormActionState } from "@/lib/admin/form-state"
 import { runQueueOnce } from "@/lib/jobs/worker"
 import { cancelJob, enqueueJob, retryJob } from "@/lib/services/jobs-service"
+import type { JobRow } from "@/lib/db/schema"
 
 const paths = ["/jobs", "/sistema", "/atividades", "/notificacoes"]
+
+/** Feedback-friendly variant of enqueueReconcileAction, for ActionForm/useActionState. */
+export async function enqueueReconcileFormAction(
+  state: FormActionState<JobRow>,
+  formData: FormData,
+): Promise<FormActionState<JobRow>> {
+  return runFormAction("jobs", "create", paths, state, async (actorId) => {
+    const { managedAccountId } = z
+      .object({ managedAccountId: z.string().uuid("Conta inválida.") })
+      .parse(Object.fromEntries(formData))
+    const job = await enqueueJob({
+      type: "reconcile_account",
+      payload: { managedAccountId },
+      createdBy: actorId,
+      idempotencyKey: `reconcile:${managedAccountId}:${new Date().toISOString().slice(0, 10)}`,
+    })
+    await recordAdminActivity({ actorUserId: actorId, entityType: "job", entityId: job.id, action: "job_enqueued", metadata: { type: job.type } })
+    return job
+  }, formData)
+}
 
 export async function enqueueReconcileAction(formData: FormData) {
   return guardedAction("jobs", "create", paths, async (actorId) => {

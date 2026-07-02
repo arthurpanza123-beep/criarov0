@@ -1,8 +1,8 @@
 import { Upload } from "lucide-react"
 
-import { importAction } from "./actions"
+import { importFormAction } from "./actions"
+import { ActionForm } from "@/components/admin/action-form"
 import { DataTable, EmptyState, PageHeader, Panel, StatusBadge, TableShell } from "@/components/admin/primitives"
-import { Button } from "@/components/ui/button"
 import { formatDate } from "@/lib/admin/display"
 import { can } from "@/lib/auth/permissions"
 import { requirePermission } from "@/lib/auth/session"
@@ -40,28 +40,30 @@ export default async function ImportsPage() {
 
       {canCreate ? (
         <Panel className="mb-4">
-          <form action={importAction} className="grid gap-3 md:grid-cols-[180px_1fr_auto_auto] md:items-end">
-            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          <ActionForm
+            action={importFormAction}
+            successMessage="Importação processada."
+            className="grid gap-3 md:grid-cols-[180px_1fr_auto_auto] md:items-end"
+            submitLabel="Enviar"
+            submitIcon={<Upload className="size-4" />}
+          >
+            <div className="flex flex-col gap-1 text-xs text-muted-foreground">
               Entidade
               <select name="entity" required className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none">
                 {IMPORT_ENTITIES.map((entity) => (
                   <option key={entity} value={entity}>{entity}</option>
                 ))}
               </select>
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            </div>
+            <div className="flex flex-col gap-1 text-xs text-muted-foreground">
               Arquivo CSV
               <input name="file" type="file" accept=".csv,text/csv" required className="h-9 rounded-lg border border-border bg-background/70 px-3 py-1.5 text-sm outline-none" />
-            </label>
+            </div>
             <label className="flex items-center gap-2 text-xs text-muted-foreground">
               <input type="checkbox" name="dryRun" value="false" className="size-4" />
               Aplicar (commit)
             </label>
-            <Button type="submit">
-              <Upload className="size-4" />
-              Enviar
-            </Button>
-          </form>
+          </ActionForm>
           <p className="mt-3 text-xs text-muted-foreground">
             Colunas esperadas — {Object.entries(templates).map(([entity, cols]) => `${entity}: ${cols.join(", ")}`).join(" · ")}
           </p>

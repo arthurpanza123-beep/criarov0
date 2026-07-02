@@ -1,8 +1,8 @@
 import { Save } from "lucide-react"
 
-import { updateSettingAction } from "./actions"
+import { updateSettingFormAction } from "./actions"
+import { ActionForm } from "@/components/admin/action-form"
 import { PageHeader, Panel } from "@/components/admin/primitives"
-import { Button } from "@/components/ui/button"
 import { can } from "@/lib/auth/permissions"
 import { requirePermission } from "@/lib/auth/session"
 import { settingsService, type EditableSettingKey } from "@/lib/services/settings-service"
@@ -39,31 +39,43 @@ export default async function SettingsPage() {
       <div className="grid gap-3 md:grid-cols-2">
         {editableFields.map((field) => (
           <Panel key={field.key}>
-            <form action={updateSettingAction} className="flex flex-col gap-2">
-              <label htmlFor={field.key} className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                {field.label}
-              </label>
-              <input type="hidden" name="key" value={field.key} />
-              <input
-                id={field.key}
-                name="value"
-                defaultValue={displayValue(values.get(field.key))}
-                placeholder={field.placeholder}
-                disabled={!canUpdate}
-                required
-                className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
-              />
-              <div className="flex items-center justify-between gap-2">
+            {canUpdate ? (
+              <ActionForm
+                action={updateSettingFormAction}
+                successMessage="Configuração salva."
+                className="flex flex-col gap-2"
+                submitLabel="Salvar"
+                submitIcon={<Save className="size-3.5" />}
+              >
+                <label htmlFor={field.key} className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                  {field.label}
+                </label>
+                <input type="hidden" name="key" value={field.key} />
+                <input
+                  id={field.key}
+                  name="value"
+                  defaultValue={displayValue(values.get(field.key))}
+                  placeholder={field.placeholder}
+                  required
+                  className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none focus:border-primary"
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">{field.hint}</span>
+                  <span className="font-mono text-[10px] text-muted-foreground/70">{field.key}</span>
+                </div>
+              </ActionForm>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{field.label}</label>
+                <input
+                  defaultValue={displayValue(values.get(field.key))}
+                  placeholder={field.placeholder}
+                  disabled
+                  className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                />
                 <span className="text-xs text-muted-foreground">{field.hint}</span>
-                {canUpdate ? (
-                  <Button type="submit" size="sm" variant="outline">
-                    <Save className="size-3.5" />
-                    Salvar
-                  </Button>
-                ) : null}
               </div>
-              <span className="font-mono text-[10px] text-muted-foreground/70">{field.key}</span>
-            </form>
+            )}
           </Panel>
         ))}
       </div>

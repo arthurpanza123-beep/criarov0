@@ -1,24 +1,29 @@
 "use client"
 
-import { Eye, EyeOff, Loader2, Save } from "lucide-react"
-import { useActionState, useState } from "react"
+import { Eye, EyeOff, Save } from "lucide-react"
+import { useActionState, useRef, useState } from "react"
 
-import { Button } from "@/components/ui/button"
+import { FormError, SubmitButton, useFormFeedback } from "@/components/admin/form-feedback"
 import { changePasswordAction } from "@/app/alterar-senha/actions"
 import type { ChangePasswordState } from "@/app/alterar-senha/actions"
 
-const initialState: ChangePasswordState = {}
+const initialState: ChangePasswordState = { success: false, submissionId: 0 }
 
 export function ChangePasswordForm() {
   const [state, formAction, pending] = useActionState(changePasswordAction, initialState)
   const [visible, setVisible] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
   const type = visible ? "text" : "password"
 
+  useFormFeedback(formRef, state, {
+    clearFieldsOnError: ["currentPassword", "newPassword", "confirmPassword"],
+  })
+
   return (
-    <form action={formAction} className="w-full max-w-sm space-y-4">
-      <PasswordField name="currentPassword" label="Senha atual" type={type} autoComplete="current-password" />
-      <PasswordField name="newPassword" label="Nova senha" type={type} autoComplete="new-password" />
-      <PasswordField name="confirmPassword" label="Confirmar nova senha" type={type} autoComplete="new-password" />
+    <form ref={formRef} action={formAction} className="w-full max-w-sm space-y-4">
+      <PasswordField name="currentPassword" label="Senha atual" type={type} autoComplete="current-password" invalid={!!state.error} />
+      <PasswordField name="newPassword" label="Nova senha" type={type} autoComplete="new-password" invalid={!!state.error} />
+      <PasswordField name="confirmPassword" label="Confirmar nova senha" type={type} autoComplete="new-password" invalid={!!state.error} />
 
       <button
         type="button"
@@ -29,16 +34,11 @@ export function ChangePasswordForm() {
         {visible ? "Ocultar senhas" : "Mostrar senhas"}
       </button>
 
-      {state.error && (
-        <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-foreground/80">
-          {state.error}
-        </p>
-      )}
+      <FormError message={state.error} />
 
-      <Button type="submit" size="lg" className="w-full ring-glow" disabled={pending}>
-        {pending ? <Loader2 className="animate-spin" /> : <Save />}
+      <SubmitButton pending={pending} icon={<Save />} size="lg" className="w-full">
         Alterar senha
-      </Button>
+      </SubmitButton>
     </form>
   )
 }
@@ -48,11 +48,13 @@ function PasswordField({
   label,
   type,
   autoComplete,
+  invalid,
 }: {
   name: string
   label: string
   type: string
   autoComplete: string
+  invalid?: boolean
 }) {
   return (
     <div className="space-y-2">
@@ -65,6 +67,7 @@ function PasswordField({
         type={type}
         autoComplete={autoComplete}
         minLength={14}
+        aria-invalid={invalid}
         className="h-11 w-full rounded-lg border border-border bg-background/70 px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-3 focus:ring-primary/20"
         required
       />

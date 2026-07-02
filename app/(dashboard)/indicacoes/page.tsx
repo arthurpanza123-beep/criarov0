@@ -3,11 +3,12 @@ import { Archive, CheckCircle2, RotateCcw, Save } from "lucide-react"
 import {
   approveReferralAction,
   archiveReferralAction,
-  createReferralAction,
+  createReferralFormAction,
   restoreReferralAction,
   transitionReferralAction,
   updateReferralAction,
 } from "./actions"
+import { ActionForm } from "@/components/admin/action-form"
 import { EmptyState, PageHeader, Pagination, Panel, SearchFilter, StatusBadge, TableShell, DataTable } from "@/components/admin/primitives"
 import { Button } from "@/components/ui/button"
 import { can } from "@/lib/auth/permissions"
@@ -40,8 +41,14 @@ export default async function ReferralsPage({ searchParams }: { searchParams?: P
       <PageHeader title="Indicações" description="Fluxo real de indicações. Aprovação não cria ledger automático sem conta gerenciada associada." />
       {canCreate ? (
         <Panel className="mb-4">
-          <form action={createReferralAction} className="grid gap-3 md:grid-cols-[180px_1fr_1fr_130px_110px_auto]">
-            <select name="campaignId" required className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none">
+          <ActionForm
+            action={createReferralFormAction}
+            successMessage="Indicação criada."
+            className="grid gap-3 md:grid-cols-[180px_1fr_1fr_130px_110px_auto]"
+            submitLabel="Criar"
+            submitIcon={<Save className="size-4" />}
+          >
+            <select name="campaignId" required className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none">
               <option value="">Campanha</option>
               {campaigns.data.map((campaign) => (
                 <option key={campaign.id} value={campaign.id}>
@@ -49,16 +56,12 @@ export default async function ReferralsPage({ searchParams }: { searchParams?: P
                 </option>
               ))}
             </select>
-            <input name="contactName" placeholder="Contato" required className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
-            <input name="contactEmail" type="email" placeholder="E-mail" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+            <input name="contactName" placeholder="Contato" required className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+            <input name="contactEmail" type="email" placeholder="E-mail" className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input name="contactPhone" placeholder="Telefone" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input name="expectedReward" defaultValue="0.00" placeholder="Recompensa" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input type="hidden" name="status" value="pending" />
-            <Button type="submit">
-              <Save className="size-4" />
-              Criar
-            </Button>
-          </form>
+          </ActionForm>
         </Panel>
       ) : null}
 

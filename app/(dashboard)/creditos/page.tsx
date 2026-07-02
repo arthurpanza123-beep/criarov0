@@ -1,6 +1,7 @@
 import { Ban, CheckCircle2, Save } from "lucide-react"
 
-import { cancelCreditLedgerAction, confirmCreditLedgerAction, createCreditLedgerAction } from "./actions"
+import { cancelCreditLedgerAction, confirmCreditLedgerAction, createCreditLedgerFormAction } from "./actions"
+import { ActionForm } from "@/components/admin/action-form"
 import { EmptyState, PageHeader, Pagination, Panel, SearchFilter, StatusBadge, TableShell, DataTable } from "@/components/admin/primitives"
 import { Button } from "@/components/ui/button"
 import { can } from "@/lib/auth/permissions"
@@ -29,8 +30,14 @@ export default async function CreditLedgerPage({ searchParams }: { searchParams?
       <PageHeader title="Créditos" description="Ledger confirmado é a fonte para cálculo de saldo. Lançamentos não são apagados." />
       {canCreate ? (
         <Panel className="mb-4">
-          <form action={createCreditLedgerAction} className="grid gap-3 md:grid-cols-[180px_110px_110px_90px_1fr_auto]">
-            <select name="managedAccountId" required className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none">
+          <ActionForm
+            action={createCreditLedgerFormAction}
+            successMessage="Lançamento criado."
+            className="grid gap-3 md:grid-cols-[180px_110px_110px_90px_1fr_auto]"
+            submitLabel="Criar"
+            submitIcon={<Save className="size-4" />}
+          >
+            <select name="managedAccountId" required className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none">
               <option value="">Conta</option>
               {accounts.data.map((account) => (
                 <option key={account.id} value={account.id}>
@@ -45,17 +52,13 @@ export default async function CreditLedgerPage({ searchParams }: { searchParams?
                 </option>
               ))}
             </select>
-            <input name="amount" defaultValue="0.00" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+            <input name="amount" defaultValue="0.00" className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input name="currency" defaultValue="USD" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input name="description" placeholder="Descrição" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input type="hidden" name="status" value="pending" />
             <input type="hidden" name="campaignId" value="" />
             <input type="hidden" name="referralId" value="" />
-            <Button type="submit">
-              <Save className="size-4" />
-              Criar
-            </Button>
-          </form>
+          </ActionForm>
         </Panel>
       ) : null}
 

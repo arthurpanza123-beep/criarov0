@@ -1,6 +1,7 @@
 import { Archive, RotateCcw, Save } from "lucide-react"
 
-import { archiveCampaignAction, createCampaignAction, restoreCampaignAction, updateCampaignAction } from "./actions"
+import { archiveCampaignAction, createCampaignFormAction, restoreCampaignAction, updateCampaignAction } from "./actions"
+import { ActionForm } from "@/components/admin/action-form"
 import { EmptyState, PageHeader, Pagination, Panel, SearchFilter, StatusBadge, TableShell, DataTable } from "@/components/admin/primitives"
 import { Button } from "@/components/ui/button"
 import { can } from "@/lib/auth/permissions"
@@ -31,21 +32,23 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
       <PageHeader title="Campanhas" description="CRUD real de campanhas. URLs são armazenadas e validadas, nunca acessadas automaticamente." />
       {canCreate ? (
         <Panel className="mb-4">
-          <form action={createCampaignAction} className="grid gap-3 md:grid-cols-[1fr_140px_1fr_120px_100px_auto]">
-            <input name="name" placeholder="Nome" required className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
-            <input name="platform" placeholder="Plataforma" required className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
-            <input name="referralUrl" placeholder="Referral URL" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+          <ActionForm
+            action={createCampaignFormAction}
+            successMessage="Campanha criada."
+            className="grid gap-3 md:grid-cols-[1fr_140px_1fr_120px_100px_auto]"
+            submitLabel="Criar"
+            submitIcon={<Save className="size-4" />}
+          >
+            <input name="name" placeholder="Nome" required className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+            <input name="platform" placeholder="Plataforma" required className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+            <input name="referralUrl" placeholder="Referral URL" className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input name="rewardPerConversion" defaultValue="0.00" placeholder="Recompensa" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input name="currency" defaultValue="USD" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input type="hidden" name="monthlyLimit" value="" />
             <input type="hidden" name="termsUrl" value="" />
             <input type="hidden" name="notes" value="" />
             <input type="hidden" name="active" value="true" />
-            <Button type="submit">
-              <Save className="size-4" />
-              Criar
-            </Button>
-          </form>
+          </ActionForm>
         </Panel>
       ) : null}
 

@@ -5,11 +5,32 @@ import { revalidatePath } from "next/cache"
 import { recordAdminActivity } from "@/lib/admin/audit"
 import { idFormSchema, orderFormSchema, orderTransitionFormSchema, parseForm } from "@/lib/admin/form-schemas"
 import { guardedAction } from "@/lib/admin/server-action"
+import { runFormAction, type FormActionState } from "@/lib/admin/form-state"
 import { can } from "@/lib/auth/permissions"
 import { requirePermission } from "@/lib/auth/session"
 import { ordersService } from "@/lib/services/orders-service"
+import type { OrderRow } from "@/lib/db/schema"
 
 const paths = ["/", "/pedidos", "/clientes", "/atividades"]
+
+/** Feedback-friendly variant of createOrderAction, for ActionForm/useActionState. */
+export async function createOrderFormAction(
+  state: FormActionState<OrderRow>,
+  formData: FormData,
+): Promise<FormActionState<OrderRow>> {
+  return runFormAction("orders", "create", paths, state, async (actorId) => {
+    const input = parseForm(orderFormSchema, formData)
+    const row = await ordersService.create(input)
+    await recordAdminActivity({
+      actorUserId: actorId,
+      entityType: "order",
+      entityId: row.id,
+      action: "order_created",
+      metadata: { customerId: row.customerId, status: row.status },
+    })
+    return row
+  }, formData)
+}
 
 export async function createOrderAction(formData: FormData) {
   return guardedAction("orders", "create", paths, async (actorId) => {

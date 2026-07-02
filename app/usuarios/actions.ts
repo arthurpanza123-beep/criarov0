@@ -1,10 +1,12 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { z } from "zod"
 
 import { recordAuthActivity } from "@/lib/auth/audit"
-import { isRole } from "@/lib/auth/permissions"
+import { isRole, roleValues } from "@/lib/auth/permissions"
 import { requireSession } from "@/lib/auth/session"
+import { KnownFormError, runFormAction, type FormActionState } from "@/lib/admin/form-state"
 import {
   blockUser,
   createInternalUser,
@@ -23,6 +25,42 @@ function readUserId(formData: FormData) {
   const userId = String(formData.get("userId") ?? "")
   if (!userId) throw new Error("Usuário inválido.")
   return userId
+}
+
+const createUserFormSchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório.").max(200),
+  email: z.string().trim().toLowerCase().email("E-mail inválido."),
+  password: z.string().min(14, "A senha precisa ter ao menos 14 caracteres."),
+  role: z.enum(roleValues, { message: "Papel inválido." }),
+})
+
+/** Feedback-friendly variant of createUserAction, for ActionForm/useActionState. */
+export async function createUserFormAction(
+  state: FormActionState<{ id: string } | null>,
+  formData: FormData,
+): Promise<FormActionState<{ id: string } | null>> {
+  return runFormAction("users", "manage", ["/usuarios"], state, async (actorId) => {
+    const parsed = createUserFormSchema.safeParse(Object.fromEntries(formData))
+    if (!parsed.success) {
+      throw parsed.error
+    }
+    const { name, email, password, role } = parsed.data
+
+    let created
+    try {
+      created = await createInternalUser({ name, email, role, password })
+    } catch {
+      throw new KnownFormError("Não foi possível criar o usuário. O e-mail já pode estar em uso.")
+    }
+
+    await recordAuthActivity({
+      actorUserId: actorId,
+      targetUserId: created.id,
+      action: "user_created",
+      metadata: { role },
+    })
+    return created
+  }, formData)
 }
 
 export async function createUserAction(formData: FormData) {

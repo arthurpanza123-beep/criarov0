@@ -11,10 +11,31 @@ import {
   referralTransitionFormSchema,
 } from "@/lib/admin/form-schemas"
 import { guardedAction } from "@/lib/admin/server-action"
+import { runFormAction, type FormActionState } from "@/lib/admin/form-state"
 import { requirePermission } from "@/lib/auth/session"
 import { referralsService } from "@/lib/services/referrals-service"
+import type { ReferralRow } from "@/lib/db/schema"
 
 const paths = ["/", "/indicacoes", "/creditos", "/atividades"]
+
+/** Feedback-friendly variant of createReferralAction, for ActionForm/useActionState. */
+export async function createReferralFormAction(
+  state: FormActionState<ReferralRow>,
+  formData: FormData,
+): Promise<FormActionState<ReferralRow>> {
+  return runFormAction("referrals", "create", paths, state, async (actorId) => {
+    const input = parseForm(referralFormSchema, formData)
+    const row = await referralsService.create(input)
+    await recordAdminActivity({
+      actorUserId: actorId,
+      entityType: "referral",
+      entityId: row.id,
+      action: "referral_created",
+      metadata: { campaignId: row.campaignId, status: row.status },
+    })
+    return row
+  }, formData)
+}
 
 export async function createReferralAction(formData: FormData) {
   return guardedAction("referrals", "create", paths, async (actorId) => {

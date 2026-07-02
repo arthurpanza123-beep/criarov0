@@ -1,6 +1,7 @@
 import { Archive, RotateCcw, Save } from "lucide-react"
 
-import { archiveOrderAction, createOrderAction, restoreOrderAction, transitionOrderAction, updateOrderAction } from "./actions"
+import { archiveOrderAction, createOrderFormAction, restoreOrderAction, transitionOrderAction, updateOrderAction } from "./actions"
+import { ActionForm } from "@/components/admin/action-form"
 import { EmptyState, PageHeader, Pagination, Panel, SearchFilter, StatusBadge, TableShell, DataTable } from "@/components/admin/primitives"
 import { Button } from "@/components/ui/button"
 import { can } from "@/lib/auth/permissions"
@@ -34,8 +35,14 @@ export default async function OrdersPage({ searchParams }: { searchParams?: Page
       <PageHeader title="Pedidos" description="Pedidos reais com transições controladas e cálculo monetário sem float." />
       {canCreate ? (
         <Panel className="mb-4">
-          <form action={createOrderAction} className="grid gap-3 md:grid-cols-[180px_1fr_110px_110px_110px_90px_auto]">
-            <select name="customerId" required className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none">
+          <ActionForm
+            action={createOrderFormAction}
+            successMessage="Pedido criado."
+            className="grid gap-3 md:grid-cols-[180px_1fr_110px_110px_110px_90px_auto]"
+            submitLabel="Criar"
+            submitIcon={<Save className="size-4" />}
+          >
+            <select name="customerId" required className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none">
               <option value="">Cliente</option>
               {customers.data.map((customer) => (
                 <option key={customer.id} value={customer.id}>
@@ -43,17 +50,13 @@ export default async function OrdersPage({ searchParams }: { searchParams?: Page
                 </option>
               ))}
             </select>
-            <input name="description" placeholder="Descrição" required className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+            <input name="description" placeholder="Descrição" required className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input name="creditAmount" defaultValue="0.00" placeholder="Créditos" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input name="salePrice" defaultValue="0.00" placeholder="Venda" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input name="costPrice" defaultValue="0.00" placeholder="Custo" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input name="currency" defaultValue="USD" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input type="hidden" name="status" value="draft" />
-            <Button type="submit">
-              <Save className="size-4" />
-              Criar
-            </Button>
-          </form>
+          </ActionForm>
         </Panel>
       ) : null}
 

@@ -5,11 +5,32 @@ import { z } from "zod"
 import { recordAdminActivity } from "@/lib/admin/audit"
 import { idFormSchema, managedAccountFormSchema, parseForm } from "@/lib/admin/form-schemas"
 import { guardedAction } from "@/lib/admin/server-action"
+import { runFormAction, type FormActionState } from "@/lib/admin/form-state"
 import { creditLedgerService } from "@/lib/services/credit-ledger-service"
 import { managedAccountsService } from "@/lib/services/managed-accounts-service"
 import { notificationsService } from "@/lib/services/notifications-service"
+import type { ManagedAccountRow } from "@/lib/db/schema"
 
 const paths = ["/", "/contas", "/creditos", "/atividades", "/notificacoes"]
+
+/** Feedback-friendly variant of createManagedAccountAction, for ActionForm/useActionState. */
+export async function createManagedAccountFormAction(
+  state: FormActionState<ManagedAccountRow>,
+  formData: FormData,
+): Promise<FormActionState<ManagedAccountRow>> {
+  return runFormAction("managedAccounts", "create", paths, state, async (actorId) => {
+    const input = parseForm(managedAccountFormSchema, formData)
+    const row = await managedAccountsService.create(input)
+    await recordAdminActivity({
+      actorUserId: actorId,
+      entityType: "managed_account",
+      entityId: row.id,
+      action: "managed_account_created",
+      metadata: { status: row.status, provider: row.provider },
+    })
+    return row
+  }, formData)
+}
 
 export async function createManagedAccountAction(formData: FormData) {
   return guardedAction("managedAccounts", "create", paths, async (actorId) => {

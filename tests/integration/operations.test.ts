@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto"
 import { eq } from "drizzle-orm"
 import { migrate } from "drizzle-orm/postgres-js/migrator"
 import { config } from "dotenv"
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { GET as readyRoute } from "@/app/api/health/ready/route"
 import { GET as versionRoute } from "@/app/api/version/route"
@@ -289,6 +289,23 @@ describe("phase 6 operations integration (criarov0_test)", () => {
     it("version endpoint returns version and commit without secrets", () => {
       const response = versionRoute()
       expect(response.status).toBe(200)
+    })
+
+    it("version endpoint reflects APP_COMMIT from the environment (never hardcoded)", async () => {
+      const previous = process.env.APP_COMMIT
+      try {
+        process.env.APP_COMMIT = "deadbeefcafefeed0000000000000000000000"
+        vi.resetModules()
+        const { GET: freshVersionRoute } = await import("@/app/api/version/route")
+        const response = freshVersionRoute()
+        const body = await response.json()
+        expect(body.commit).toBe("deadbeefcafefeed0000000000000000000000")
+        expect(JSON.stringify(body)).not.toMatch(/password|secret|DATABASE_URL/i)
+      } finally {
+        if (previous === undefined) delete process.env.APP_COMMIT
+        else process.env.APP_COMMIT = previous
+        vi.resetModules()
+      }
     })
   })
 

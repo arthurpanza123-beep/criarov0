@@ -18,6 +18,8 @@
     "db:seed": "tsx lib/db/seed.ts",
     "db:studio": "drizzle-kit studio",
     "db:check": "drizzle-kit check",
+    "db:backup": "tsx scripts/backup-database.ts",
+    "ops:monitor": "node --conditions=react-server --import tsx scripts/health-monitor.ts",
     "auth:bootstrap-owner": "tsx scripts/auth-bootstrap-owner.ts"
   },
   "dependencies": {

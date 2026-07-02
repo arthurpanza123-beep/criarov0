@@ -1,0 +1,14 @@
+[Unit]
+Description=v0 Farm Console - daily database backup timer (criarov0)
+
+[Timer]
+# Runs once a day at 03:15 local/server time (low-traffic window), with a
+# randomized delay to avoid exact-second contention with other timers/cron
+# jobs on the shared host.
+OnCalendar=*-*-* 03:15:00
+RandomizedDelaySec=300
+Persistent=true
+Unit=v0-farmar-backup.service
+
+[Install]
+WantedBy=timers.target

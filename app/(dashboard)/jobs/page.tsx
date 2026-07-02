@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { Ban, PlayCircle, RotateCcw, Wrench } from "lucide-react"
 
-import { cancelJobAction, enqueueMaintenanceAction, enqueueReconcileAction, enqueueReportAction, retryJobAction, runQueueNowAction } from "./actions"
+import { cancelJobAction, enqueueMaintenanceAction, enqueueReconcileFormAction, enqueueReportAction, retryJobAction, runQueueNowAction } from "./actions"
+import { ActionForm } from "@/components/admin/action-form"
 import { DataTable, EmptyState, MetricCard, PageHeader, Pagination, Panel, StatusBadge, TableShell } from "@/components/admin/primitives"
 import { Button } from "@/components/ui/button"
 import { formatDate } from "@/lib/admin/display"
@@ -60,8 +61,14 @@ export default async function JobsPage({ searchParams }: { searchParams?: PageSe
       {canCreate ? (
         <Panel className="mb-4">
           <div className="flex flex-wrap items-end gap-3">
-            <form action={enqueueReconcileAction} className="flex items-end gap-2">
-              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            <ActionForm
+              action={enqueueReconcileFormAction}
+              successMessage="Reconciliação enfileirada."
+              className="flex items-end gap-2"
+              submitLabel="Enfileirar"
+              submitVariant="outline"
+            >
+              <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                 Reconciliar conta
                 <select name="managedAccountId" required className="h-9 min-w-56 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none">
                   <option value="">Selecione a conta</option>
@@ -71,9 +78,8 @@ export default async function JobsPage({ searchParams }: { searchParams?: PageSe
                     </option>
                   ))}
                 </select>
-              </label>
-              <Button type="submit" variant="outline">Enfileirar</Button>
-            </form>
+              </div>
+            </ActionForm>
             <form action={enqueueMaintenanceAction}>
               <Button type="submit" variant="outline">
                 <Wrench className="size-4" />

@@ -3,9 +3,34 @@
 import { recordAdminActivity } from "@/lib/admin/audit"
 import { creditLedgerFormSchema, idFormSchema, parseForm } from "@/lib/admin/form-schemas"
 import { guardedAction } from "@/lib/admin/server-action"
+import { runFormAction, type FormActionState } from "@/lib/admin/form-state"
 import { creditLedgerService } from "@/lib/services/credit-ledger-service"
+import type { CreditLedgerRow } from "@/lib/db/schema"
 
 const paths = ["/", "/creditos", "/contas", "/atividades"]
+
+/** Feedback-friendly variant of createCreditLedgerAction, for ActionForm/useActionState. */
+export async function createCreditLedgerFormAction(
+  state: FormActionState<CreditLedgerRow>,
+  formData: FormData,
+): Promise<FormActionState<CreditLedgerRow>> {
+  return runFormAction("creditLedger", "create", paths, state, async (actorId) => {
+    const input = parseForm(creditLedgerFormSchema, formData)
+    const row = await creditLedgerService.create(input)
+    await recordAdminActivity({
+      actorUserId: actorId,
+      entityType: "credit_ledger",
+      entityId: row.id,
+      action: "credit_ledger_created",
+      metadata: {
+        managedAccountId: row.managedAccountId,
+        type: row.type,
+        status: row.status,
+      },
+    })
+    return row
+  }, formData)
+}
 
 export async function createCreditLedgerAction(formData: FormData) {
   return guardedAction("creditLedger", "create", paths, async (actorId) => {

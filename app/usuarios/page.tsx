@@ -5,10 +5,11 @@ import { ArrowLeft, Ban, CheckCircle2, KeyRound, ShieldCheck, UserPlus } from "l
 import {
   blockUserAction,
   changeRoleAction,
-  createUserAction,
+  createUserFormAction,
   forcePasswordChangeAction,
   reactivateUserAction,
 } from "@/app/usuarios/actions"
+import { ActionForm } from "@/components/admin/action-form"
 import { Button } from "@/components/ui/button"
 import { getCurrentUser } from "@/lib/auth/session"
 import { listUsersForAdmin } from "@/lib/auth/users"
@@ -53,12 +54,19 @@ export default async function UsersPage() {
         </header>
 
         <section className="border border-border bg-card/40 p-4">
-          <form action={createUserAction} className="grid gap-3 md:grid-cols-[1fr_1fr_150px_1fr_auto]">
+          <ActionForm
+            action={createUserFormAction}
+            successMessage="Usuário criado."
+            clearFieldsOnError={["password"]}
+            className="grid gap-3 md:grid-cols-[1fr_1fr_150px_1fr_auto]"
+            submitLabel="Criar"
+            submitIcon={<UserPlus className="size-4" />}
+          >
             <input
               name="name"
               placeholder="Nome"
               autoComplete="name"
-              className="h-10 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none focus:border-primary"
+              className="h-10 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none focus:border-primary"
               required
             />
             <input
@@ -66,7 +74,7 @@ export default async function UsersPage() {
               type="email"
               placeholder="E-mail"
               autoComplete="email"
-              className="h-10 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none focus:border-primary"
+              className="h-10 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none focus:border-primary"
               required
             />
             <select
@@ -86,14 +94,10 @@ export default async function UsersPage() {
               placeholder="Senha temporária"
               autoComplete="new-password"
               minLength={14}
-              className="h-10 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none focus:border-primary"
+              className="h-10 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none focus:border-primary"
               required
             />
-            <Button type="submit">
-              <UserPlus className="size-4" />
-              Criar
-            </Button>
-          </form>
+          </ActionForm>
         </section>
 
         <section className="overflow-hidden border border-border bg-card/40">

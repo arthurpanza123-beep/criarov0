@@ -1,6 +1,7 @@
 import { Archive, RotateCcw, Save } from "lucide-react"
 
-import { archiveCustomerAction, createCustomerAction, restoreCustomerAction, updateCustomerAction } from "./actions"
+import { archiveCustomerAction, createCustomerFormAction, restoreCustomerAction, updateCustomerAction } from "./actions"
+import { ActionForm } from "@/components/admin/action-form"
 import { EmptyState, PageHeader, Pagination, Panel, SearchFilter, TableShell, DataTable } from "@/components/admin/primitives"
 import { Button } from "@/components/ui/button"
 import { can } from "@/lib/auth/permissions"
@@ -24,16 +25,18 @@ export default async function CustomersPage({ searchParams }: { searchParams?: P
       <PageHeader title="Clientes" description="Clientes reais associados aos pedidos. E-mail é opcional quando o schema permite." />
       {canCreate ? (
         <Panel className="mb-4">
-          <form action={createCustomerAction} className="grid gap-3 md:grid-cols-[1fr_1fr_150px_1fr_auto]">
-            <input name="name" placeholder="Nome" required className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
-            <input name="email" type="email" placeholder="E-mail" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
-            <input name="phone" placeholder="Telefone" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+          <ActionForm
+            action={createCustomerFormAction}
+            successMessage="Cliente criado."
+            className="grid gap-3 md:grid-cols-[1fr_1fr_150px_1fr_auto]"
+            submitLabel="Criar"
+            submitIcon={<Save className="size-4" />}
+          >
+            <input name="name" placeholder="Nome" required className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+            <input name="email" type="email" placeholder="E-mail" className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+            <input name="phone" placeholder="Telefone" className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input name="notes" placeholder="Notas" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
-            <Button type="submit">
-              <Save className="size-4" />
-              Criar
-            </Button>
-          </form>
+          </ActionForm>
         </Panel>
       ) : null}
 

@@ -2,12 +2,13 @@ import { Archive, RotateCcw, Save, Scale } from "lucide-react"
 
 import {
   archiveManagedAccountAction,
-  createManagedAccountAction,
+  createManagedAccountFormAction,
   reconcileManagedAccountAction,
   restoreManagedAccountAction,
   updateManagedAccountAction,
   updateManagedAccountStatusAction,
 } from "./actions"
+import { ActionForm } from "@/components/admin/action-form"
 import { EmptyState, PageHeader, Pagination, Panel, SearchFilter, StatusBadge, TableShell, DataTable } from "@/components/admin/primitives"
 import { Button } from "@/components/ui/button"
 import { can } from "@/lib/auth/permissions"
@@ -39,19 +40,21 @@ export default async function AccountsPage({ searchParams }: { searchParams?: Pa
       <PageHeader title="Contas gerenciadas" description="Contas administrativas sem senhas, cookies ou tokens externos." />
       {canCreate ? (
         <Panel className="mb-4">
-          <form action={createManagedAccountAction} className="grid gap-3 md:grid-cols-[1fr_1fr_140px_140px_1fr_auto]">
-            <input name="label" placeholder="Nome" required className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
-            <input name="email" type="email" placeholder="E-mail" required className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
-            <input name="provider" placeholder="Provider" required className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
-            <input name="monthlyCreditLimit" placeholder="Limite" defaultValue="0.00" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+          <ActionForm
+            action={createManagedAccountFormAction}
+            successMessage="Conta criada."
+            className="grid gap-3 md:grid-cols-[1fr_1fr_140px_140px_1fr_auto]"
+            submitLabel="Criar"
+            submitIcon={<Save className="size-4" />}
+          >
+            <input name="label" placeholder="Nome" required className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+            <input name="email" type="email" placeholder="E-mail" required className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+            <input name="provider" placeholder="Provider" required className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
+            <input name="monthlyCreditLimit" placeholder="Limite" defaultValue="0.00" className="h-9 w-full rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input name="notes" placeholder="Notas" className="h-9 rounded-lg border border-border bg-background/70 px-3 text-sm outline-none" />
             <input type="hidden" name="status" value="active" />
             <input type="hidden" name="lastCheckedAt" value="" />
-            <Button type="submit">
-              <Save className="size-4" />
-              Criar
-            </Button>
-          </form>
+          </ActionForm>
         </Panel>
       ) : null}
 

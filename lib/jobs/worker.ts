@@ -6,8 +6,23 @@ import { handlers } from "@/lib/jobs/handlers"
 import { newCorrelationId } from "@/lib/observability/correlation"
 import { safeErrorMessage } from "@/lib/observability/errors"
 import { logger as baseLogger } from "@/lib/observability/logger"
+import { versionInfo } from "@/lib/observability/version"
 import type { JobRow } from "@/lib/db/schema"
 import { claimNextJob, completeJob, failJob, recordJobRun } from "@/lib/services/jobs-service"
+import { upsertSetting } from "@/lib/services/settings-service"
+import { getDb } from "@/lib/db"
+
+export const WORKER_HEARTBEAT_KEY = "ops.workerHeartbeat"
+const HEARTBEAT_INTERVAL_MS = 15_000
+
+async function writeHeartbeat(workerId: string) {
+  try {
+    await upsertSetting(WORKER_HEARTBEAT_KEY, { workerId, at: new Date().toISOString() }, getDb())
+  } catch {
+    // A missed heartbeat write must never crash the worker loop; monitoring
+    // will simply see a stale heartbeat on the next check.
+  }
+}
 
 class TimeoutError extends Error {}
 
@@ -107,10 +122,16 @@ export async function runWorker(options: WorkerOptions = {}): Promise<void> {
   process.once("SIGTERM", () => shutdown("SIGTERM"))
   process.once("SIGINT", () => shutdown("SIGINT"))
 
-  logger.info("worker started", { pollIntervalMs })
+  logger.info("worker started", { pollIntervalMs, ...versionInfo() })
+  await writeHeartbeat(workerId)
+  let lastHeartbeatAt = Date.now()
   while (running) {
     try {
       const job = await claimNextJob(workerId)
+      if (Date.now() - lastHeartbeatAt >= HEARTBEAT_INTERVAL_MS) {
+        await writeHeartbeat(workerId)
+        lastHeartbeatAt = Date.now()
+      }
       if (job) {
         await runClaimedJob(job, workerId)
         continue // immediately try the next job
