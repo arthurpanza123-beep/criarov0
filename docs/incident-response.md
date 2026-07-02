@@ -103,6 +103,59 @@ sudo nginx -t && sudo systemctl reload nginx
   (rotate) o segredo imediatamente (`BETTER_AUTH_SECRET`, senha do banco, etc.) independentemente do
   que for feito no histórico do Git.
 
+## 9. Monitor reporta worker offline (heartbeat ausente ou expirado)
+
+O worker grava um heartbeat (`settings.ops.workerHeartbeat`) a cada ~15s enquanto roda. O monitor
+(`v0-farmar-monitor.timer`, a cada 5 min) marca `worker: critical` se o heartbeat nunca existiu ou
+está mais antigo que 60s (4 ciclos perdidos).
+
+```bash
+pm2 status v0-farmar-worker
+pm2 logs v0-farmar-worker --lines 100
+corepack pnpm@9.15.9 ops:monitor   # execução manual para confirmar o estado atual
+```
+
+- Se `v0-farmar-worker` não está `online`: `pm2 restart v0-farmar-worker`.
+- Se está `online` mas o heartbeat não avança: verificar erro de conexão ao banco nos logs; o
+  heartbeat falho não derruba o worker (é best-effort), então o problema real geralmente está no
+  loop principal (`claimNextJob`) travando por outro motivo.
+- Uma notificação de recuperação ("Operação normalizada") aparece automaticamente quando o próximo
+  ciclo do monitor confirma que todas as checagens voltaram a `ok`.
+
+## 10. Backup atrasado ou com falha
+
+O monitor marca `backup: critical` se o último backup **falhou** ou se passaram mais de ~26h desde
+o último sucesso (a execução diária é às 03:15 UTC; a margem de 26h absorve pequenos atrasos do
+`RandomizedDelaySec`).
+
+```bash
+systemctl status v0-farmar-backup.timer
+journalctl -u v0-farmar-backup.service -n 50
+corepack pnpm@9.15.9 db:backup   # forçar uma execução manual imediata
+```
+
+- Se o timer não está `active`: `sudo systemctl enable --now v0-farmar-backup.timer`.
+- Se a última execução falhou: ler o erro no `journalctl` (sanitizado, sem credenciais) — causas
+  comuns são espaço em disco insuficiente ou o cluster PostgreSQL temporariamente indisponível.
+- Depois de corrigir a causa, rodar `corepack pnpm@9.15.9 db:backup` manualmente e confirmar
+  `status: "ok"` no `journalctl` e em `/sistema` antes de considerar resolvido.
+
+## 11. Disco com pouco espaço livre
+
+O monitor usa `statfs` (sem depender de `df`) e marca `warn` a partir de 85% de uso e `critical` a
+partir de 95%, calculado sobre o filesystem do diretório do projeto (onde `backups/` também vive).
+
+```bash
+df -h /
+du -sh "/home/panza/v0 farmar/backups"
+```
+
+- Retenção de backup (7 diários/4 semanais/6 mensais) já limita o crescimento automático; se o
+  disco estiver cheio por outro motivo (logs, outros projetos), investigar antes de reduzir a
+  retenção de backup.
+- Nunca apagar backups manualmente fora da política de retenção sem confirmar que existe outra
+  cópia válida mais recente.
+
 ## Critério geral de "produção segura"
 
 Produção é considerada segura quando: `pm2 status` mostra os dois processos `online` com restarts

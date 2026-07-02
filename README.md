@@ -58,12 +58,19 @@ corepack pnpm@9.15.9 test:e2e          # Playwright
 corepack pnpm@9.15.9 build
 corepack pnpm@9.15.9 db:check
 corepack pnpm@9.15.9 worker            # worker da fila
+corepack pnpm@9.15.9 db:backup         # backup manual do banco principal
+corepack pnpm@9.15.9 ops:monitor       # execução manual do monitor operacional
 ```
 
 ## Produção
 
 Servido via PM2 (`v0-farmar-web` + `v0-farmar-worker`, porta interna `3200`) atrás de Nginx com
-TLS (Let's Encrypt) em `https://v0.panzza.com.br`. Detalhes em `docs/deployment.md`.
+TLS (Let's Encrypt) em `https://v0.panzza.com.br`. `APP_COMMIT` é resolvido automaticamente
+(`git rev-parse HEAD`) e exposto em `/api/version` e nos logs de inicialização — nunca hardcoded.
+Backup automático diário (systemd timer, `pg_dump` + checksum SHA-256 + retenção) e monitoramento
+operacional (systemd timer a cada 5 min: web, worker, readiness, backup, fila, dead-letter, disco)
+com notificação interna deduplicada por incidente. Detalhes em `docs/deployment.md`,
+`docs/backup-restore.md` e `docs/operations.md`.
 
 ## Origem
 

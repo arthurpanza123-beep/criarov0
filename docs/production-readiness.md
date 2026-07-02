@@ -16,9 +16,15 @@ operacionais completos em `docs/deployment.md`, `docs/rollback.md`, `docs/runboo
 | `BETTER_AUTH_SECRET` | Segredo do Better Auth. |
 | `BETTER_AUTH_URL` / `APP_URL` | Origem confiável / base URL. |
 | `INITIAL_OWNER_*` | Bootstrap do owner (remover após 1º acesso). |
-| `APP_COMMIT` / `GIT_COMMIT` | Commit exibido em `/api/version` (definir no deploy). |
+| `APP_COMMIT` | Commit exibido em `/api/version`. Resolvido automaticamente via `git rev-parse
+  HEAD` em `ecosystem.config.cjs` — **nunca precisa ser definido manualmente** em produção; a
+  variável só é um fallback caso o `.git` não esteja disponível. |
 | `LOG_LEVEL` | Nível mínimo de log (`debug|info|warn|error`, padrão `info`). |
 | `WORKER_POLL_INTERVAL_MS` | Intervalo de polling do worker (padrão 2000). |
+| `BACKUP_DIR` / `BACKUP_RETENTION_*` / `PG_BIN_DIR` | Configuração do backup automático (ver
+  `docs/backup-restore.md`), todas com defaults sensatos. |
+| `MONITOR_WEB_URL` | URL usada pelo monitor para checar o processo web (padrão
+  `http://127.0.0.1:3200/api/health`). |
 
 `.env.example` documenta as chaves sem valores reais.
 
@@ -78,16 +84,21 @@ Procedimento completo, com checksum e validação de restore, em `docs/backup-re
 
 ## Checklist de deploy
 
-1. `git pull` na branch de release; confirmar `.env.local` (segredos, `APP_COMMIT`).
+1. `git pull` na branch de release; confirmar `.env.local` (segredos).
 2. `corepack pnpm@9.15.9 install --frozen-lockfile`.
 3. Backup do banco principal com checksum (`docs/backup-restore.md`) antes de qualquer migration.
-4. Aplicar migrations em `criarov0_test`, rodar suíte completa, depois `criarov0` (`db:migrate`).
+4. Aplicar migrations em `criarov0_test`, rodar suíte completa (`typecheck`, `lint`, `test`,
+   `test:integration`, `test:e2e`), depois `criarov0` (`db:migrate`).
 5. `corepack pnpm@9.15.9 build`.
 6. `db:check` limpo.
-7. `pm2 reload v0-farmar-web && pm2 reload v0-farmar-worker` (ou `pm2 restart` se `reload` não graceful).
-8. Verificar `/api/health`, `/api/health/ready`, `/api/version` via `https://v0.panzza.com.br`.
-9. Confirmar owner e troca de senha inicial; remover `INITIAL_OWNER_*` do ambiente após confirmação.
-10. Procedimento completo (incluindo Nginx/TLS) em `docs/deployment.md`.
+7. `pm2 delete v0-farmar-web v0-farmar-worker && pm2 start ecosystem.config.cjs` (garante que
+   `APP_COMMIT` seja recalculado; `pm2 reload` isolado não relê a config).
+8. `pm2 save`.
+9. Verificar `/api/health`, `/api/health/ready`, `/api/version` via `https://v0.panzza.com.br` —
+   comparar `git rev-parse HEAD` com o campo `commit` do `/api/version`.
+10. Rodar `corepack pnpm@9.15.9 ops:monitor` manualmente e confirmar `severity: "ok"`.
+11. Confirmar owner e troca de senha inicial; remover `INITIAL_OWNER_*` do ambiente após confirmação.
+12. Procedimento completo (incluindo Nginx/TLS) em `docs/deployment.md`.
 
 ## Checklist de rollback
 
@@ -100,10 +111,24 @@ Procedimento completo em `docs/rollback.md`. Resumo:
 4. `pm2 restart v0-farmar-web v0-farmar-worker`. Validar health checks.
 5. Se necessário, restaurar o dump em banco isolado e validar antes de qualquer troca no principal.
 
+## Feedback de formulário e monitoramento
+
+- Formulários prioritários (login, alterar-senha, usuários, contas, campanhas, indicações,
+  clientes, pedidos, créditos, importações, jobs, configurações) têm feedback inline: erro geral,
+  erro por campo, estado de carregamento, foco automático no primeiro campo inválido, toast de
+  sucesso/erro e limpeza de campos sensíveis (senha) após falha. Implementação em
+  `components/admin/action-form.tsx`, `components/admin/form-feedback.tsx`,
+  `lib/admin/form-state.ts`.
+- Monitoramento operacional automático (`v0-farmar-monitor.timer`, a cada 5 min): web, worker
+  (heartbeat), readiness, backup, fila, dead-letter, jobs presos, disco. Notificação interna criada
+  apenas em transição de estado. Detalhes em `docs/incident-response.md`.
+
 ## Limitações reais
 
 - Reconciliação e relatórios são sob demanda (sem agendamento cron embutido; pode-se enfileirar via
   `run_at` futuro).
-- Formulários usam progressive enhancement sem feedback inline de erro (erros tratados no servidor).
 - Importação assíncrona carrega o CSV no payload do job (adequado a volumes dentro dos limites).
 - Sem CDN/WAF externo; TLS e headers de segurança aplicados diretamente no Nginx da VPS.
+- Backup automatizado é diário (não incremental/contínuo); RPO máximo de ~24h em caso de perda
+  total do volume de dados entre execuções.
+- Sem recuperação de senha por e-mail nem login social (fora do escopo desta fase).

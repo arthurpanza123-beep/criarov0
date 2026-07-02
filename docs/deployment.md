@@ -13,9 +13,24 @@
 
 ## PM2
 
-Definição em `ecosystem.config.cjs` na raiz do projeto:
+Definição em `ecosystem.config.cjs` na raiz do projeto. `APP_COMMIT` é resolvido dinamicamente via
+`git rev-parse HEAD` no momento em que o PM2 carrega a config (nunca hardcoded, nunca editado à
+mão) e injetado como variável de ambiente para os dois processos:
 
 ```js
+// PM2 process definitions for v0-farm-console (web + queue worker).
+const { execSync } = require("node:child_process")
+
+function resolveAppCommit() {
+  try {
+    return execSync("git rev-parse HEAD", { cwd: __dirname, encoding: "utf-8" }).trim()
+  } catch {
+    return process.env.APP_COMMIT || "unknown"
+  }
+}
+
+const APP_COMMIT = resolveAppCommit()
+
 module.exports = {
   apps: [
     {
@@ -24,6 +39,7 @@ module.exports = {
       script: "node_modules/next/dist/bin/next",
       args: "start -p 3200",
       interpreter: "/home/panza/.nvm/versions/node/v24.18.0/bin/node",
+      env: { APP_COMMIT },
       autorestart: true,
       max_restarts: 10,
       restart_delay: 2000,
@@ -37,6 +53,7 @@ module.exports = {
       script: "scripts/worker.ts",
       interpreter: "/home/panza/.nvm/versions/node/v24.18.0/bin/node",
       interpreter_args: "--conditions=react-server --import tsx",
+      env: { APP_COMMIT },
       autorestart: true,
       max_restarts: 10,
       restart_delay: 2000,
@@ -48,6 +65,16 @@ module.exports = {
 }
 ```
 
+Efeito prático: sempre que o PM2 é reiniciado com a config atualizada (`pm2 delete` + `pm2 start
+ecosystem.config.cjs`, ou `pm2 restart` de cada processo), `APP_COMMIT` reflete exatamente o commit
+que está no checkout — validável comparando `git rev-parse HEAD` com
+`curl -s https://v0.panzza.com.br/api/version`. `instrumentation.ts` (hook oficial do Next.js) e o
+worker (`lib/jobs/worker.ts`) logam versão/commit na inicialização.
+
+> `pm2 reload` **não** relê variáveis de ambiente de uma config alterada em todos os casos; o
+> caminho garantido após atualizar `ecosystem.config.cjs` é `pm2 delete v0-farmar-web
+> v0-farmar-worker && pm2 start ecosystem.config.cjs`.
+
 Os dois processos rodam sob o **mesmo daemon PM2** já existente do usuário `panza`, junto com outros
 ~15 processos de outros projetos no mesmo host. Comandos:
 
@@ -56,7 +83,7 @@ pm2 start ecosystem.config.cjs   # primeira subida
 pm2 status v0-farmar-web v0-farmar-worker
 pm2 logs v0-farmar-web --lines 100
 pm2 logs v0-farmar-worker --lines 100
-pm2 reload v0-farmar-web         # reload sem downtime (após build novo)
+pm2 reload v0-farmar-web         # reload sem downtime (após novo build, sem mudar env)
 pm2 restart v0-farmar-worker
 pm2 save                          # persiste a lista de processos para reboot do host
 ```
@@ -133,6 +160,25 @@ sudo systemctl reload nginx
   automática já agendada pelo Certbot (timer/cron do sistema).
 - HSTS adicionado manualmente no bloco `server` HTTPS (`Strict-Transport-Security`).
 
+## Backup e monitoramento automáticos
+
+Dois `systemd timers` independentes, isolados de qualquer outro serviço do host:
+
+- `v0-farmar-backup.timer` → `v0-farmar-backup.service`: diário às 03:15 UTC, roda
+  `scripts/backup-database.ts`. Detalhes em `docs/backup-restore.md`.
+- `v0-farmar-monitor.timer` → `v0-farmar-monitor.service`: a cada 5 minutos, roda
+  `scripts/health-monitor.ts`. Detalhes em `docs/incident-response.md` e `docs/operations.md`.
+
+Arquivos de unidade versionados em `systemd/` (o projeto), instalados manualmente em
+`/etc/systemd/system/`:
+
+```bash
+sudo cp systemd/v0-farmar-backup.service systemd/v0-farmar-backup.timer /etc/systemd/system/
+sudo cp systemd/v0-farmar-monitor.service systemd/v0-farmar-monitor.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now v0-farmar-backup.timer v0-farmar-monitor.timer
+```
+
 ## Deploy de uma nova versão
 
 ```bash
@@ -144,13 +190,16 @@ corepack pnpm@9.15.9 typecheck
 corepack pnpm@9.15.9 lint
 corepack pnpm@9.15.9 test
 corepack pnpm@9.15.9 test:integration
+corepack pnpm@9.15.9 test:e2e
 corepack pnpm@9.15.9 build
 corepack pnpm@9.15.9 db:check
 # se houver migration nova: aplicar em criarov0_test, rodar suíte, backup do principal, depois:
 corepack pnpm@9.15.9 db:migrate
-pm2 reload v0-farmar-web
-pm2 restart v0-farmar-worker
+pm2 delete v0-farmar-web v0-farmar-worker && pm2 start ecosystem.config.cjs
+pm2 save
 curl -s https://v0.panzza.com.br/api/health/ready
+git rev-parse HEAD                                          # comparar com:
+curl -s https://v0.panzza.com.br/api/version                 # campo "commit" deve ser idêntico
 ```
 
 ## Verificação pós-deploy (smoke)

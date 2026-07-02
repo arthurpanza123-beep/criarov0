@@ -67,6 +67,21 @@ Logs da aplicação são JSON estruturado, sanitizados (sem segredos, tokens, `D
 - **Exportar**: `/exportacoes` — CSV autorizado por entidade e por permissão de leitura.
 - **Relatórios/simulador**: `/relatorios` — capacidade, saldo, receita, lucro, margem, cenários.
 
+## Backup e monitoramento (systemd timers)
+
+```bash
+systemctl status v0-farmar-backup.timer v0-farmar-monitor.timer
+systemctl list-timers v0-farmar-backup.timer v0-farmar-monitor.timer
+journalctl -u v0-farmar-backup.service -n 50
+journalctl -u v0-farmar-monitor.service -n 50
+corepack pnpm@9.15.9 db:backup     # execução manual do backup
+corepack pnpm@9.15.9 ops:monitor   # execução manual do monitor
+```
+
+A página `/sistema` mostra o status do último backup, idade, disco, heartbeat do worker, fila e
+dead-letter em um só lugar. Detalhes completos em `docs/backup-restore.md` e
+`docs/incident-response.md`.
+
 ## Verificação de banco
 
 ```bash
@@ -82,3 +97,7 @@ corepack pnpm@9.15.9 db:check
 - `/api/health/ready`: `200`, `database: ok`, `queue: ok`.
 - Logs de erro: sem repetição do mesmo erro em janelas curtas.
 - `nginx -t`: sempre válido antes de qualquer reload.
+- `v0-farmar-backup.timer`/`v0-farmar-monitor.timer`: `active (waiting)`, próxima execução visível
+  em `systemctl list-timers`.
+- `/sistema`: backup com idade menor que ~26h e status `ok`; worker com heartbeat recente; sem
+  jobs presos ou dead-letter acumulado; disco fora da faixa crítica.

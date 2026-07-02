@@ -42,6 +42,25 @@ corepack pnpm@9.15.9 db:migrate          # aplica migrations (usa DRIZZLE_DATABA
 corepack pnpm@9.15.9 db:seed             # settings não sensíveis, idempotente
 corepack pnpm@9.15.9 auth:bootstrap-owner
 corepack pnpm@9.15.9 worker
+corepack pnpm@9.15.9 db:backup           # backup manual (ver docs/backup-restore.md)
+corepack pnpm@9.15.9 ops:monitor         # execução manual do monitor operacional
+```
+
+## Backup automático e monitoramento
+
+- **Backup**: PM2 não gerencia isso — é um `systemd timer` independente
+  (`v0-farmar-backup.timer`, diário às 03:15 UTC) que roda `scripts/backup-database.ts`.
+  Detalhes completos (retenção, checksum, restore) em `docs/backup-restore.md`.
+- **Monitor**: `systemd timer` independente (`v0-farmar-monitor.timer`, a cada 5 minutos) que roda
+  `scripts/health-monitor.ts`, checando web, worker (heartbeat), readiness, backup, fila,
+  dead-letter, jobs presos e disco. Resultado agregado fica em `/sistema`; uma notificação interna
+  é criada apenas na transição de estado (novo incidente ou recuperação), nunca a cada execução.
+
+```bash
+systemctl status v0-farmar-backup.timer v0-farmar-monitor.timer
+systemctl list-timers v0-farmar-backup.timer v0-farmar-monitor.timer
+journalctl -u v0-farmar-backup.service -n 50
+journalctl -u v0-farmar-monitor.service -n 50
 ```
 
 ## Health checks

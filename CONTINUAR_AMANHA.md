@@ -1,140 +1,136 @@
 # Continuar Amanhã
 
 Handoff canônico. Este documento descreve o **estado real e verificado** do projeto, não intenção
-ou trabalho planejado. Datas/evidências correspondem à auditoria e certificação mais recentes.
+ou trabalho planejado.
 
 ## Estado atual
 
-O projeto está **em produção real**, publicado em `https://v0.panzza.com.br`, com PostgreSQL,
-autenticação, RBAC, dashboard/CRUDs, fila de jobs, worker, importação/exportação, observabilidade,
-PM2, Nginx e TLS — todos funcionando e verificados nesta auditoria.
+Projeto em produção real em `https://v0.panzza.com.br`. Fase 7 (acabamento operacional) concluída:
+backup automático diário, `APP_COMMIT` resolvido automaticamente e validado, feedback inline em
+todos os formulários prioritários, monitoramento operacional automático com notificação interna
+deduplicada, e página `/sistema` expandida.
 
-Fases incorporadas na base atual:
+## Branch e commit implantado
 
-- Fase 3: PostgreSQL + Drizzle.
-- Fase 4: Better Auth, RBAC, login, sessão.
-- Fase 5: dashboard e CRUDs conectados ao PostgreSQL real.
-- Fase 6: fila de jobs (idempotência, retry/backoff, timeout, dead-letter, stale lock reclaim,
-  cancelamento, graceful shutdown), worker, importação/exportação CSV, simulador/relatórios,
-  observabilidade (`/api/health*`, `/api/version`, `/api/metrics`, `/sistema`).
-- Correção de segurança: mitigação de CSV/formula injection na exportação (`lib/admin/csv.ts`).
-- Certificação de produção: migration aplicada no banco principal, backup com checksum e restore
-  validado, testes de stale lock e timeout adicionados, PM2 (web + worker), Nginx, domínio e TLS
-  configurados e verificados via smoke test público.
+- Branch de trabalho: `chore/operational-polish` (publicada).
+- `main`: atualizada via fast-forward puro, publicada.
+- **Commit implantado e verificado em produção**: `449a7c06f379b28b2950f0309a8a14a7a1fd2347`.
+  Confirmado por: `git rev-parse HEAD` local == campo `commit` de
+  `curl -s https://v0.panzza.com.br/api/version` — validação exata, sem hardcode.
 
-## Branch e commits
+## Backup automático
 
-- Branch de trabalho: `feat/operations-readiness`.
-- Commits anteriores na base: `22726b4` (Fase 3), `e86dc13`/`feat: add secure authentication and
-  rbac` (Fase 4), `47656c9`/`feat: connect dashboard and cruds to postgres` (Fase 5).
-- Nesta fase, a Fase 6 completa (jobs, worker, import/export, observabilidade) e a correção de CSV
-  injection estavam implementadas no working tree mas **não commitadas** ao início desta auditoria.
-  Ver o commit final desta fase abaixo (após a certificação) e o relatório entregue nesta sessão
-  para o hash exato e a lista de arquivos.
+- `systemd timer` `v0-farmar-backup.timer` (diário, 03:15 UTC + até 5 min de atraso aleatório),
+  ativo e habilitado (`systemctl status v0-farmar-backup.timer` → `active (waiting)`).
+- Script: `scripts/backup-database.ts` + `lib/ops/backup-retention.ts` (lógica pura testada em
+  `tests/unit/ops.test.ts`, 14 testes).
+- Retenção: 7 diários / 4 semanais / 6 mensais, com promoção antes de descarte.
+- Checksum SHA-256 por arquivo, verificação de integridade via `pg_restore --list`.
+- Status persistido em `backups/last-backup.json` **e** em `settings.ops.lastBackupStatus` (lido
+  pela página `/sistema` e pelo monitor).
+- **Evidência real desta certificação**: backup manual + backup via `systemctl start
+  v0-farmar-backup.service` bem-sucedidos; teste de falha proposital com exit code correto; teste
+  de retenção com 10 dumps simulados confirmando keep-7/promote-8th; restore real validado em banco
+  temporário `criarov0_restore_check` (17 tabelas, contagens idênticas), depois removido.
 
-## Banco usado
+## APP_COMMIT
 
-- Cluster PostgreSQL: 17, porta `5433`.
-- Banco principal: `criarov0`.
-- Banco de teste: `criarov0_test`.
-- Role da aplicação: `criarov0_app`.
-- Credenciais somente em `.env.local` (nunca versionado).
+- Resolvido dinamicamente em `ecosystem.config.cjs` via `git rev-parse HEAD` (nunca hardcoded,
+  nunca editado manualmente).
+- Propagado como variável de ambiente para `v0-farmar-web` e `v0-farmar-worker`.
+- Logado na inicialização: `instrumentation.ts` (web, hook oficial do Next.js) e `lib/jobs/worker.ts`
+  (worker, log `"worker started"` com `versionInfo()`).
+- **Validado nesta certificação**: commit local == commit em produção (ver seção acima).
 
-## Migrations
+## Feedback inline de formulários
 
-- `lib/db/migrations/0000_stiff_firebird.sql`
-- `lib/db/migrations/0001_cuddly_ultimo.sql`
-- `lib/db/migrations/0002_organic_kate_bishop.sql` (jobs, job_runs, import_batches — aditiva)
+- Helpers reutilizáveis: `components/admin/action-form.tsx` (`ActionForm`, children JSX diretos —
+  nunca render-prop, por causa da fronteira RSC server→client), `components/admin/form-feedback.tsx`
+  (`FormError`, `FieldError`, `SubmitButton`, `useFormFeedback`), `components/ui/toast.tsx`
+  (`ToastProvider`/`useToast`), `lib/admin/form-state.ts` + `lib/admin/form-state-types.ts`
+  (`FormActionState<T>`, `runFormAction`, `KnownFormError`).
+- Aplicado a: login, alterar-senha, usuários, contas, campanhas, indicações, clientes, pedidos,
+  créditos, importações (upload CSV), jobs (enfileirar reconciliação), configurações.
+- Comportamento: erro geral sanitizado (nunca stack trace ou erro cru de driver/banco), erro por
+  campo, estado de carregamento no botão, foco automático no primeiro campo inválido, toast de
+  sucesso, limpeza de campos sensíveis (senha) após falha.
+- **Bug real encontrado e corrigido durante esta fase**: a primeira tentativa usou `children` como
+  função (render-prop) recebendo `(state, pending) => JSX` — isso quebra em produção porque Next.js
+  RSC não permite passar funções do Server Component (a página) para o Client Component
+  (`ActionForm`); só dados serializáveis e Server Actions `"use server"` cruzam essa fronteira. O
+  erro só apareceu no `next build`/`test:e2e` reais, não no `typecheck`/`lint`/testes unitários.
+  Corrigido usando `children` como elementos JSX já instanciados (serializáveis), com
+  `cloneElement` interno no `ActionForm` para injetar `aria-invalid` e renderizar `FieldError`.
 
-**Estado real confirmado**: ambos os bancos (`criarov0` e `criarov0_test`) têm 17 tabelas públicas e
-3/3 migrations aplicadas. `criarov0` tem 168 constraints e 54 índices em `public`.
+## Monitoramento operacional
 
-## Backup mais recente com checksum
+- `systemd timer` `v0-farmar-monitor.timer` (a cada 5 minutos), ativo e habilitado.
+- Script: `scripts/health-monitor.ts` + `lib/services/monitoring-service.ts`.
+- Checagens: banco, worker (heartbeat, throttle 15s), fila (backlog), dead-letter, jobs presos,
+  backup (status/idade), disco (via `statfs`, sem shell out).
+- Resultado agregado em `settings.ops.lastMonitorRun`, exibido em `/sistema`.
+- Notificação interna criada **apenas na transição de estado** (novo incidente ou recuperação) —
+  comprovado por teste de integração que roda o monitor duas vezes seguidas com o mesmo incidente e
+  confirma que só 1 notificação é criada.
+- **Evidência real desta certificação**: antes do deploy, o worker real (código antigo, sem
+  heartbeat) foi detectado como `critical` pelo monitor. Após o deploy, o heartbeat apareceu em
+  ~20s e uma nova execução do monitor confirmou `severity: "ok"` em todas as 7 checagens, com
+  notificação de recuperação "Operação normalizada" criada automaticamente.
 
-- Arquivo: `backups/criarov0-pre-migration-0002-20260702-152049.dump` (não versionado no Git).
-- Tamanho: 38750 bytes.
-- SHA-256: `0f614550d7027cf062264f884235b3a762d277ab1c0a21f5e8d324a67902083d`.
-- Restore validado em banco temporário `criarov0_restore_check` (14 tabelas — estado pré-migration
-  0002 —, contagem de `user` idêntica ao original), depois removido.
-- Procedimento completo em `docs/backup-restore.md`.
+## Página /sistema
 
-## Fila e worker
+Expandida com: banco, worker (heartbeat), fila, dead-letter, versão/commit, ambiente, backup
+(status/idade — detalhes sensíveis como erro cru só para quem tem `system:manage`, ou seja, owner),
+disco, jobs presos (só aparece se houver), última execução do monitor. RBAC: dados básicos exigem
+`system:read` (admin+owner); detalhes sensíveis exigem `system:manage` (owner).
 
-- Tabelas `jobs`/`job_runs`, serviço `lib/services/jobs-service.ts`, worker `lib/jobs/worker.ts`.
-- Garantias comprovadas por teste (`tests/integration/operations.test.ts`): idempotência,
-  concorrência (`FOR UPDATE SKIP LOCKED`), retry com backoff exponencial, dead-letter, **stale lock
-  reclaim** (2 testes novos), **timeout real de execução** (1 teste novo), cancelamento seguro,
-  graceful shutdown (`SIGTERM`/`SIGINT`, no código).
-- Detalhes em `docs/jobs.md`.
+## Banco de dados
 
-## Importação/exportação
-
-- Dry-run, commit transacional, dedup, rollback em falha — comprovados por teste.
-- **CSV/formula injection mitigada** nesta fase: `neutralizeFormula` em `lib/admin/csv.ts` prefixa
-  apóstrofo em campos iniciados com `=`, `+`, `-`, `@`, tab ou CR, com teste unitário cobrindo o
-  caso. Antes desta correção, a exportação estava vulnerável a formula injection ao abrir em
-  planilhas.
-- Detalhes em `docs/import-export.md`.
-
-## Observabilidade
-
-- `/api/health`, `/api/health/database`, `/api/health/ready`, `/api/version`, `/api/metrics`,
-  página `/sistema`.
-- Logs JSON estruturados, sanitizados (segredos/tokens/connection strings redigidos, comprovado por
-  teste).
-- Readiness testada e verificada em produção: `200`, `database: ok`, `queue: ok`.
-
-## Infraestrutura de produção
-
-- **PM2**: `v0-farmar-web` (porta interna `3200`) e `v0-farmar-worker`, ambos `online`, sob o
-  daemon PM2 já existente do usuário `panza` (compartilhado com outros ~15 processos de outros
-  projetos — nenhum foi afetado). Definição em `ecosystem.config.cjs`.
-- **Nginx**: site `v0.panzza.com.br` em `/etc/nginx/sites-available`, proxy para
-  `127.0.0.1:3200`. `nginx -t` válido globalmente.
-- **Domínio**: `v0.panzza.com.br`, DNS já apontado para o IP público da VPS antes desta fase.
-- **TLS**: certificado Let's Encrypt via Certbot, válido até 2026-09-30, renovação automática
-  configurada. HSTS ativo.
-- Detalhes completos em `docs/deployment.md`.
+- `criarov0` (principal) e `criarov0_test`: ambos com 17 tabelas públicas, 3/3 migrations
+  aplicadas. Nenhuma migration nova nesta fase (Fase 7 não altera schema).
+- Backup pré-deploy desta fase: `criarov0-20260702-175620.dump` (feito antes do deploy do
+  commit `449a7c0`).
 
 ## Testes (última execução completa)
 
 ```text
 typecheck        0 erros
 lint              0 avisos
-test (unit)      55 passed (6 arquivos) — inclui teste de neutralização de CSV injection
-test:integration 58 passed (4 arquivos) — inclui stale lock reclaim (2) e timeout real (1)
-build            ok (16 rotas)
+test (unit)      78 passed (8 arquivos)
+test:integration 74 passed (5 arquivos)
+build            ok (25 rotas)
 db:check         ok
-test:e2e         3 passed (Playwright)
+test:e2e         3 passed (Playwright, fluxo completo real)
 ```
 
-Todos usam exclusivamente `criarov0_test` para integração/E2E (guarda destrutiva no código impede
-uso acidental do banco principal).
+## Smoke de produção (última execução)
 
-## Smoke test de produção (última execução)
+Via `https://v0.panzza.com.br`: `/api/health` 200, `/api/health/ready` 200 (`ready`), `/api/version`
+200 (commit correto), `/login` 200, `/`, `/sistema` e `/api/metrics` 307 (protegidos corretamente),
+headers de segurança presentes (incluindo HSTS). Zero erros nos logs (`web-error.log`,
+`worker-error.log`) e zero restarts do PM2 minutos após o deploy.
 
-Via `https://v0.panzza.com.br`: `/api/health` 200, `/api/health/ready` 200 (`ready`, banco e fila
-ok), `/api/health/database` 200, `/api/version` 200, `/login` 200, `/` 307 (dashboard protegido,
-correto), `/api/metrics` 307 (protegido sem sessão, correto), headers de segurança presentes
-(`X-Frame-Options`, `X-Content-Type-Options`, CSP, HSTS).
+## Infraestrutura (sem alteração nesta fase)
+
+PM2 (`v0-farmar-web` + `v0-farmar-worker`), Nginx com TLS (Let's Encrypt) em
+`v0.panzza.com.br`, PostgreSQL 17 porta `5433` — todos já certificados em fase anterior e mantidos
+sem alteração de arquitetura nesta fase (apenas `ecosystem.config.cjs` ganhou resolução automática
+de `APP_COMMIT`).
 
 ## Pendências reais (não bloqueiam produção atual)
 
-- Backup automático agendado (cron/systemd timer) **não configurado** — hoje o backup é manual
-  (procedimento em `docs/backup-restore.md`). Recomendado antes da próxima migration.
-- `APP_COMMIT`/`GIT_COMMIT` não definidos no ambiente de produção (`/api/version` mostra
-  `commit: "unknown"`); definir no processo de deploy para rastreabilidade.
-- Feedback inline de erros por formulário ainda não implementado (Server Actions com progressive
-  enhancement).
+- Backup automatizado é diário (não incremental); RPO máximo ~24h.
+- Sem recuperação de senha por e-mail nem login social (fora do escopo desta fase, explicitamente
+  não solicitados).
 - Sem agendamento cron embutido para reconciliação/relatórios (jobs podem ser agendados via `run_at`
   futuro, mas não há daemon de cron).
-- Recuperação de senha por e-mail e login social não implementados (fora do escopo atual).
+- Auditoria visual pós-deploy não incluiu login manual com credenciais reais do owner de produção
+  (boa prática de segurança — a senha nunca foi exposta); a evidência funcional vem do `test:e2e`
+  completo contra servidor de produção real antes do deploy, mais smoke HTTP direto pós-deploy.
 
 ## Próximo passo exato
 
-1. Revisar o diff final (código + docs) antes do commit.
-2. Comitar Fase 6 + correção de CSV injection + documentação desta fase, seguindo o padrão de
-   mensagens de commit do projeto.
-3. Decidir sobre publicar a branch/merge para `main` no remoto (ver relatório final para o estado
-   exato de autenticação do remoto no momento da auditoria).
-4. Configurar backup automático agendado (pendência listada acima).
+1. Considerar automatizar a instalação dos arquivos `systemd/*.service`/`*.timer` como parte do
+   fluxo de deploy (hoje é um passo manual documentado em `docs/deployment.md`).
+2. Avaliar CSP mais estrita (com nonce) no Nginx, se necessário.
+3. Nenhuma ação urgente pendente — sistema certificado e estável.
